@@ -1,6 +1,8 @@
 package lexer
 
-import "BigTalck_Interpreter/token"
+import (
+	"BigTalck_Interpreter/token"
+)
 
 type Lexer struct {
 	input        string
@@ -38,7 +40,13 @@ func (l *Lexer) NextToken() token.Token {
 
 	switch l.chr {
 	case '=':
-		tok = token.Token{Type: token.ASSIGN, Literal: string(l.chr)}
+		if l.peekChar() == '=' {
+			chr := l.chr
+			l.readChar()
+			tok = token.Token{Type: token.EQ, Literal: string(chr) + string(l.chr)}
+		} else {
+			tok = token.Token{Type: token.ASSIGN, Literal: string(l.chr)}
+		}
 	case ';':
 		tok = token.Token{Type: token.SEMICOLON, Literal: string(l.chr)}
 	case '(':
@@ -53,6 +61,24 @@ func (l *Lexer) NextToken() token.Token {
 		tok = token.Token{Type: token.LBRACE, Literal: string(l.chr)}
 	case '}':
 		tok = token.Token{Type: token.RBRACE, Literal: string(l.chr)}
+	case '-':
+		tok = token.Token{Type: token.MINUS, Literal: string(l.chr)}
+	case '!':
+		if l.peekChar() == '=' {
+			chr := l.chr
+			l.readChar()
+			tok = token.Token{Type: token.NOT_EQ, Literal: string(chr) + string(l.chr)}
+		} else {
+			tok = token.Token{Type: token.BANG, Literal: string(l.chr)}
+		}
+	case '/':
+		tok = token.Token{Type: token.SLASH, Literal: string(l.chr)}
+	case '*':
+		tok = token.Token{Type: token.ASTERISK, Literal: string(l.chr)}
+	case '<':
+		tok = token.Token{Type: token.LT, Literal: string(l.chr)}
+	case '>':
+		tok = token.Token{Type: token.GT, Literal: string(l.chr)}
 	case 0:
 		tok.Literal = ""
 		tok.Type = token.EOF
@@ -93,6 +119,13 @@ func (l *Lexer) readNumber() string {
 		l.readChar()
 	}
 	return l.input[position:l.position]
+}
+
+func (l *Lexer) peekChar() byte {
+	if l.readPosition >= len(l.input) {
+		return 0
+	}
+	return l.input[l.readPosition]
 }
 
 func isLetter(chr byte) bool {
