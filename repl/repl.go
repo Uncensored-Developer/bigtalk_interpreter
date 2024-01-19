@@ -1,8 +1,8 @@
 package repl
 
 import (
-	"BigTalck_Interpreter/lexer"
-	"BigTalck_Interpreter/token"
+	"BigTalk_Interpreter/lexer"
+	"BigTalk_Interpreter/token"
 	"bufio"
 	"fmt"
 	"io"
