@@ -7,12 +7,31 @@ import (
 	"fmt"
 )
 
+const (
+	_ int = iota
+	LOWEST
+	EQUALS
+	LESSGREATER
+	SUM
+	PRODUCT
+	PREFIX // -x or !x
+	CALL   // aFunction(x)
+)
+
+type (
+	prefixParseFn func() ast.IExpression
+	infixParseFn  func(ast.IExpression) ast.IExpression
+)
+
 type Parser struct {
 	lexer  *lexer.Lexer
 	errors []string
 
 	currentToken token.Token
 	peekToken    token.Token
+
+	prefixParseFns map[token.TokenType]prefixParseFn
+	infixParseFns  map[token.TokenType]infixParseFn
 }
 
 func NewParser(l *lexer.Lexer) *Parser {
@@ -20,6 +39,13 @@ func NewParser(l *lexer.Lexer) *Parser {
 		lexer:  l,
 		errors: []string{},
 	}
+
+	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
+	p.registerPrefix(token.IDENT, p.parseIdentifier)
+
+	// Read two tokens, so curToken and peekToken are set
+	p.nextToken()
+	p.nextToken()
 	return p
 }
 
@@ -53,7 +79,7 @@ func (p *Parser) parseStatement() ast.IStatement {
 	case token.RETURN:
 		return p.parseReturnStatement()
 	default:
-		return nil
+		return p.parseExpressionStatement()
 	}
 }
 
@@ -109,4 +135,36 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 func (p *Parser) nextToken() {
 	p.currentToken = p.peekToken
 	p.peekToken = p.lexer.NextToken()
+}
+
+func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
+	p.prefixParseFns[tokenType] = fn
+}
+
+func (p *Parser) registerInfix(tokenType token.TokenType, fn infixParseFn) {
+	p.infixParseFns[tokenType] = fn
+}
+
+func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+	stmt := &ast.ExpressionStatement{Token: p.currentToken}
+	stmt.Value = p.parseExpression(LOWEST)
+
+	if p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+	return stmt
+}
+
+func (p *Parser) parseExpression(precedence int) ast.IExpression {
+	prefix := p.prefixParseFns[p.currentToken.Type]
+	if prefix == nil {
+		return nil
+	}
+
+	leftExp := prefix()
+	return leftExp
+}
+
+func (p *Parser) parseIdentifier() ast.IExpression {
+	return &ast.Identifier{Token: p.currentToken, Value: p.currentToken.Literal}
 }

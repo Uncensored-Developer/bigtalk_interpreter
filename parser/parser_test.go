@@ -6,6 +6,38 @@ import (
 	"testing"
 )
 
+func TestIdentifierExpression(t *testing.T) {
+	input := "foo;"
+
+	l := lexer.NewLexer(input)
+	p := NewParser(l)
+
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("len(program.Statements) = %d, want %d", len(program.Statements), 1)
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T", program.Statements[0])
+	}
+
+	ident, ok := stmt.Value.(*ast.Identifier)
+	if !ok {
+		t.Fatalf("exp not *ast.Identifier. got=%T", stmt.Value)
+	}
+
+	if ident.Value != "foo" {
+		t.Errorf("ident.Value = %q, want %q", ident.Value, "foo")
+	}
+
+	if ident.TokenLiteral() != "foo" {
+		t.Errorf("ident.TokenLiteral = %q, want %q", ident.TokenLiteral(), "foo")
+	}
+}
+
 func TestReturnStatements(t *testing.T) {
 	input := `
 return 3;
