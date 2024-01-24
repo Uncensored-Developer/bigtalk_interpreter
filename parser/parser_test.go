@@ -6,6 +6,38 @@ import (
 	"testing"
 )
 
+func TestIntegerLiteralExpression(t *testing.T) {
+	input := "3;"
+
+	l := lexer.NewLexer(input)
+	p := NewParser(l)
+
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("len(program.Statements) = %d, want %d", len(program.Statements), 1)
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T", program.Statements[0])
+	}
+
+	literal, ok := stmt.Value.(*ast.IntegerLiteral)
+	if !ok {
+		t.Fatalf("exp not *ast.IntegerLiteral. got=%T", stmt.Value)
+	}
+
+	if literal.Value != 3 {
+		t.Errorf("ident.Value = %q, want %q", literal.Value, "foo")
+	}
+
+	if literal.TokenLiteral() != "3" {
+		t.Errorf("ident.TokenLiteral = %q, want %q", literal.TokenLiteral(), "foo")
+	}
+}
+
 func TestIdentifierExpression(t *testing.T) {
 	input := "foo;"
 

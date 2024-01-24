@@ -5,6 +5,7 @@ import (
 	"BigTalk_Interpreter/lexer"
 	"BigTalk_Interpreter/token"
 	"fmt"
+	"strconv"
 )
 
 const (
@@ -42,6 +43,7 @@ func NewParser(l *lexer.Lexer) *Parser {
 
 	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
+	p.registerPrefix(token.INT, p.parseIntegerLiteral)
 
 	// Read two tokens, so curToken and peekToken are set
 	p.nextToken()
@@ -167,4 +169,17 @@ func (p *Parser) parseExpression(precedence int) ast.IExpression {
 
 func (p *Parser) parseIdentifier() ast.IExpression {
 	return &ast.Identifier{Token: p.currentToken, Value: p.currentToken.Literal}
+}
+
+func (p *Parser) parseIntegerLiteral() ast.IExpression {
+	literal := &ast.IntegerLiteral{Token: p.currentToken}
+
+	value, err := strconv.ParseInt(p.currentToken.Literal, 0, 64)
+	if err != nil {
+		msg := fmt.Sprintf("could not parse %q as a 64bit integer", p.currentToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+	literal.Value = value
+	return literal
 }
