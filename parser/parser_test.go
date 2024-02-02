@@ -7,6 +7,81 @@ import (
 	"testing"
 )
 
+func TestOperatorPrecedenceParsing(t *testing.T) {
+	testCases := []struct {
+		input    string
+		expected string
+	}{
+		{
+			"-a * b",
+			"((-a) * b)",
+		},
+		{
+			"!-a",
+			"(!(-a))",
+		},
+		{
+			"a + b + c",
+			"((a + b) + c)",
+		},
+
+		{
+			"a * b / c",
+			"((a * b) / c)",
+		},
+		{
+			"a + b - c",
+			"((a + b) - c)",
+		},
+		{
+			"a + b * c + d / e - f",
+			"(((a + (b * c)) + (d / e)) - f)",
+		},
+		{
+			"a * b * c",
+			"((a * b) * c)",
+		},
+		{
+			"a + b / c",
+			"(a + (b / c))",
+		},
+
+		{
+			"3 + 4; -5 * 5",
+			"(3 + 4)((-5) * 5)",
+		},
+		{
+			"5 > 4 == 3 < 4",
+			"((5 > 4) == (3 < 4))",
+		},
+		{
+			"5 < 4 != 3 > 4",
+			"((5 < 4) != (3 > 4))",
+		},
+		{
+			"3 + 4 * 5 == 3 * 1 + 4 * 5",
+			"((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
+		},
+		{
+			"3 + 4 * 5 == 3 * 1 + 4 * 5",
+			"((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
+		},
+	}
+
+	for _, tc := range testCases {
+		l := lexer.NewLexer(tc.input)
+		p := NewParser(l)
+
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		got := program.String()
+		if got != tc.expected {
+			t.Errorf("program.String() = %q, expected %q", got, tc.expected)
+		}
+	}
+}
+
 func TestParsingInfixExpression(t *testing.T) {
 	testCases := []struct {
 		input      string
@@ -217,36 +292,34 @@ return 99999;
 }
 
 func TestParsingLetStatements(t *testing.T) {
-	input := `
-let x = 3;
-let y = 2;
-let foo = 99999;
-`
-
-	l := lexer.NewLexer(input)
-	p := NewParser(l)
-
-	program := p.ParseProgram()
-	checkParserErrors(t, p)
-	if program == nil {
-		t.Fatalf("ParseProgram() returned nil")
-	}
-
-	if len(program.Statements) != 3 {
-		t.Fatalf("program.Statements does not contain 3 statements, got %d", len(program.Statements))
-	}
-
 	testCases := []struct {
+		input              string
 		expectedIdentifier string
+		expectedValue      interface{}
 	}{
-		{"x"},
-		{"y"},
-		{"foo"},
+		{"let x = 5;", "x", 5},
+		{"let y = true;", "y", true},
+		{"let foo = y;", "foo", "y"},
 	}
 
-	for i, tc := range testCases {
-		stmt := program.Statements[i]
+	for _, tc := range testCases {
+		fmt.Println(tc.input)
+		l := lexer.NewLexer(tc.input)
+		p := NewParser(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("program.Statements does not contain 1 statements. got=%d",
+				len(program.Statements))
+		}
+
+		stmt := program.Statements[0]
 		if !testLetStatement(t, stmt, tc.expectedIdentifier) {
+			return
+		}
+		val := stmt.(*ast.LetStatement).Value
+		if !testLiteralExpression(t, val, tc.expectedValue) {
 			return
 		}
 	}
@@ -289,4 +362,59 @@ func checkParserErrors(t *testing.T, p *Parser) {
 		t.Errorf("parser error: %q", msg)
 	}
 	t.FailNow()
+}
+
+func testIdentifier(t *testing.T, exp ast.IExpression, value string) bool {
+	ident, ok := exp.(*ast.Identifier)
+	if !ok {
+		t.Errorf("exp = %T, want *ast.Identifier", exp)
+		return false
+	}
+
+	if ident.Value != value {
+		t.Errorf("ident.Value = %s, want %s", ident.Value, value)
+		return false
+	}
+
+	if ident.TokenLiteral() != value {
+		t.Errorf("ident.TokenLiteral() = %s, want %s", ident.TokenLiteral(), value)
+		return false
+	}
+	return true
+}
+
+func testLiteralExpression(t *testing.T, exp ast.IExpression, expected any) bool {
+	switch v := expected.(type) {
+	case int:
+		return testIntegerLiteral(t, exp, int64(v))
+	case int64:
+		return testIntegerLiteral(t, exp, v)
+	case string:
+		return testIdentifier(t, exp, v)
+	default:
+		t.Errorf("exp type not handled, got %T", exp)
+		return false
+	}
+}
+
+func testInfixExpression(t *testing.T, exp ast.IExpression, left any, operator string, right any) bool {
+	opExp, ok := exp.(*ast.InfixExpression)
+	if !ok {
+		t.Errorf("exp = %T, want *ast.OperatorExpression", exp)
+		return false
+	}
+
+	if !testLiteralExpression(t, opExp.LeftValue, left) {
+		return false
+	}
+
+	if opExp.Operator != operator {
+		t.Errorf("opExp.Operator = %q, want %q", opExp.Operator, operator)
+		return false
+	}
+
+	if !testLiteralExpression(t, opExp.RightValue, right) {
+		return false
+	}
+	return true
 }
