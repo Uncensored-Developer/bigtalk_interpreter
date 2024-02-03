@@ -7,6 +7,106 @@ import (
 	"testing"
 )
 
+func TestParsingIfExpression(t *testing.T) {
+	input := "if (x < y) { x }"
+
+	l := lexer.NewLexer(input)
+	p := NewParser(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("len(program.Statements) = %d, want %d", len(program.Statements), 1)
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got = %T",
+			program.Statements[0])
+	}
+
+	ifExp, ok := stmt.Value.(*ast.IfExpression)
+	if !ok {
+		t.Fatalf("exp not *ast.IfExpression. got=%T", stmt.Value)
+	}
+
+	if !testInfixExpression(t, ifExp.Condition, "x", "<", "y") {
+		return
+	}
+
+	if len(ifExp.Consequence.Statements) != 1 {
+		t.Errorf("len(ifExp.Consequence.Statements) = %d, want %d", len(ifExp.Consequence.Statements), 1)
+	}
+
+	consequence, ok := ifExp.Consequence.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("Statements[0] is not ast.ExpressionStatement. got = %T",
+			ifExp.Consequence.Statements[0])
+	}
+	if !testIdentifier(t, consequence.Value, "x") {
+		return
+	}
+	if ifExp.Alternative != nil {
+		t.Errorf("ifExp.Alternative = %+v. want <nil>", ifExp.Alternative)
+	}
+}
+
+func TestParsingIfElseExpression(t *testing.T) {
+	input := "if (x < y) { x } else { y }"
+
+	l := lexer.NewLexer(input)
+	p := NewParser(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("len(program.Statements) = %d, want %d", len(program.Statements), 1)
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got = %T",
+			program.Statements[0])
+	}
+
+	ifExp, ok := stmt.Value.(*ast.IfExpression)
+	if !ok {
+		t.Fatalf("exp not *ast.IfExpression. got=%T", stmt.Value)
+	}
+
+	if !testInfixExpression(t, ifExp.Condition, "x", "<", "y") {
+		return
+	}
+
+	if len(ifExp.Consequence.Statements) != 1 {
+		t.Errorf("len(ifExp.Consequence.Statements) = %d, want %d", len(ifExp.Consequence.Statements), 1)
+	}
+
+	consequence, ok := ifExp.Consequence.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("Statements[0] is not ast.ExpressionStatement. got = %T",
+			ifExp.Consequence.Statements[0])
+	}
+
+	if !testIdentifier(t, consequence.Value, "x") {
+		return
+	}
+
+	if len(ifExp.Alternative.Statements) != 1 {
+		t.Errorf("len(ifExp.Alternative.Statements) = %d, want %d", len(ifExp.Alternative.Statements), 1)
+	}
+
+	alternative, ok := ifExp.Alternative.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("Statements[0] is not ast.ExpressionStatement. got = %T",
+			ifExp.Consequence.Statements[0])
+	}
+
+	if !testIdentifier(t, alternative.Value, "y") {
+		return
+	}
+}
+
 func TestParsingBooleanExpression(t *testing.T) {
 	testCases := []struct {
 		input           string
