@@ -1,7 +1,7 @@
 package main
 
 import (
-	"BigTalck_Interpreter/repl"
+	"BigTalk_Interpreter/repl"
 	"fmt"
 	"os"
 	"os/user"

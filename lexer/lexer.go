@@ -1,7 +1,7 @@
 package lexer
 
 import (
-	"BigTalck_Interpreter/token"
+	"BigTalk_Interpreter/token"
 )
 
 type Lexer struct {
