@@ -3,6 +3,7 @@ package ast
 import (
 	"BigTalk_Interpreter/token"
 	"bytes"
+	"strings"
 )
 
 type INode interface {
@@ -165,7 +166,7 @@ func (p *PrefixExpression) String() string {
 }
 
 type InfixExpression struct {
-	Token      token.Token
+	Token      token.Token // operator token, e.g +, *
 	LeftValue  IExpression
 	Operator   string
 	RightValue IExpression
@@ -208,7 +209,7 @@ func (b *Boolean) String() string {
 }
 
 type BlockStatement struct {
-	Token      token.Token
+	Token      token.Token // token.LBRACE
 	Statements []IStatement
 }
 
@@ -229,7 +230,7 @@ func (b *BlockStatement) String() string {
 }
 
 type IfExpression struct {
-	Token       token.Token
+	Token       token.Token // token.IF
 	Condition   IExpression
 	Consequence *BlockStatement
 	Alternative *BlockStatement
@@ -255,6 +256,67 @@ func (i *IfExpression) String() string {
 		out.WriteString("else ")
 		out.WriteString(i.Alternative.String())
 	}
+
+	return out.String()
+}
+
+type FunctionLiteral struct {
+	Token      token.Token // token.FUNCTION
+	Parameters []*Identifier
+	Body       *BlockStatement
+}
+
+func (f *FunctionLiteral) expressionNode() {
+
+}
+
+func (f *FunctionLiteral) TokenLiteral() string {
+	return f.Token.Literal
+}
+
+func (f *FunctionLiteral) String() string {
+	var out bytes.Buffer
+
+	var params []string
+	for _, p := range f.Parameters {
+		params = append(params, p.String())
+	}
+
+	out.WriteString(f.TokenLiteral())
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString(") ")
+	out.WriteString(f.Body.String())
+
+	return out.String()
+}
+
+type CallExpression struct {
+	Token     token.Token // token.LPAREN
+	Func      IExpression //  FunctionLiteral or Identifier
+	Arguments []IExpression
+}
+
+func (c *CallExpression) expressionNode() {
+
+}
+
+func (c *CallExpression) TokenLiteral() string {
+	return c.Token.Literal
+}
+
+func (c *CallExpression) String() string {
+	var out bytes.Buffer
+
+	var args []string
+	for _, a := range c.Arguments {
+		args = append(args, a.String())
+	}
+
+	out.WriteString(c.Func.String())
+	out.WriteString("(")
+	out.WriteString(strings.Join(args, ", "))
+	out.WriteString(")")
 
 	return out.String()
 }
