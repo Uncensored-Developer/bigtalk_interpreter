@@ -7,6 +7,22 @@ import (
 	"testing"
 )
 
+func TestEvalLetStatements(t *testing.T) {
+	testCases := []struct {
+		input    string
+		expected int64
+	}{
+		{"let x = 1; x;", 1},
+		{"let x = 2 * 3; x;", 6},
+		{"let x = 5; let y = x; y;", 5},
+		{"let x = 5; let y = x; let z = x + y + 5; z;", 15},
+	}
+	for _, tc := range testCases {
+		evaluated := setupEval(tc.input)
+		testIntegerObject(t, evaluated, tc.expected)
+	}
+}
+
 func TestErrorHandling(t *testing.T) {
 	testCases := []struct {
 		input    string
@@ -46,6 +62,10 @@ return 1;
 }
 `,
 			"unknown operator: BOOLEAN + BOOLEAN",
+		},
+		{
+			"x",
+			"identifier not found: x",
 		},
 	}
 
@@ -198,7 +218,8 @@ func setupEval(input string) object.IObject {
 	l := lexer.NewLexer(input)
 	p := parser.NewParser(l)
 	program := p.ParseProgram()
-	return Eval(program)
+	env := object.NewEnvironment()
+	return Eval(program, env)
 }
 
 func testIntegerObject(t *testing.T, obj object.IObject, expected int64) bool {
