@@ -7,6 +7,25 @@ import (
 	"testing"
 )
 
+func TestParsingStringLiteralExpression(t *testing.T) {
+	input := `"hello world";`
+
+	l := lexer.NewLexer(input)
+	p := NewParser(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	literal, ok := stmt.Value.(*ast.StringLiteral)
+	if !ok {
+		t.Fatalf("stmt.Value not *ast.StringLiteral, got = %T", stmt.Value)
+	}
+
+	if literal.Value != "hello world" {
+		t.Errorf("literal.Value = %q, want = %q", literal.Value, "hello world")
+	}
+}
+
 func TestParsingCallExpression(t *testing.T) {
 	input := "add(1, 2 + 3, 4 * 5);"
 

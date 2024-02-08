@@ -7,7 +7,36 @@ import (
 	"testing"
 )
 
-func TestClosure(t *testing.T) {
+func TestStringConcatenation(t *testing.T) {
+	input := `"Hello" + " " + "world!!"`
+
+	evaluated := setupEval(input)
+	strObj, ok := evaluated.(*object.String)
+	if !ok {
+		t.Fatalf("evaluated is not String, got = %T (%+v)", evaluated, evaluated)
+	}
+
+	want := "Hello world!!"
+	if strObj.Value != want {
+		t.Errorf("strObj.Value = %q, want = %q", strObj.Value, want)
+	}
+}
+
+func TestEvalStringLiteral(t *testing.T) {
+	input := `"Hello world!!"`
+
+	evaluated := setupEval(input)
+	strObj, ok := evaluated.(*object.String)
+	if !ok {
+		t.Fatalf("evaluated is not String, got = %T (%+v)", evaluated, evaluated)
+	}
+	want := "Hello world!!"
+	if strObj.Value != want {
+		t.Errorf("strObj.Value = %q, want = %q", strObj.Value, want)
+	}
+}
+
+func TestEvalClosure(t *testing.T) {
 	input := `
 let addFirst = fn(x) {
 fn(y) { x + y };
@@ -118,6 +147,10 @@ return 1;
 		{
 			"x",
 			"identifier not found: x",
+		},
+		{
+			`"Hello" - "World"`,
+			"unknown operator: STRING - STRING",
 		},
 	}
 
