@@ -7,6 +7,58 @@ import (
 	"testing"
 )
 
+func TestClosure(t *testing.T) {
+	input := `
+let addFirst = fn(x) {
+fn(y) { x + y };
+};
+let addSecond = addFirst(1);
+addSecond(2);`
+	evaluated := setupEval(input)
+	testIntegerObject(t, evaluated, 3)
+}
+
+func TestEvalFunctionApplication(t *testing.T) {
+	testCases := []struct {
+		input    string
+		expected int64
+	}{
+		{"let identity = fn(x) { x; }; identity(5);", 5},
+		{"let identity = fn(x) { return x; }; identity(5);", 5},
+		{"let double = fn(x) { x * 2; }; double(5);", 10},
+		{"let add = fn(x, y) { x + y; }; add(5, 5);", 10},
+		{"let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20},
+		{"fn(x) { x; }(5)", 5},
+	}
+	for _, tc := range testCases {
+		evaluated := setupEval(tc.input)
+		testIntegerObject(t, evaluated, tc.expected)
+	}
+}
+
+func TestEvalFunctionExpression(t *testing.T) {
+	input := "fn(x) { x + 1; };"
+
+	evaluated := setupEval(input)
+	fnObj, ok := evaluated.(*object.Function)
+	if !ok {
+		t.Fatalf("evaluated = %T (%+v), want object.Function", evaluated, evaluated)
+	}
+
+	if len(fnObj.Parameters) != 1 {
+		t.Fatalf("len(fnObj.Parameters) = %d, want %d", len(fnObj.Parameters), 1)
+	}
+
+	if fnObj.Parameters[0].String() != "x" {
+		t.Fatalf("function parameter is not 'x', got %q", fnObj.Parameters[0].String())
+	}
+
+	expectedBody := "(x + 1)"
+	if fnObj.Body.String() != expectedBody {
+		t.Fatalf("fnObj.Body.String() = %q, want %q", fnObj.Body.String(), expectedBody)
+	}
+}
+
 func TestEvalLetStatements(t *testing.T) {
 	testCases := []struct {
 		input    string

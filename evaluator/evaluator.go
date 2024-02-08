@@ -57,6 +57,21 @@ func Eval(node ast.INode, env *object.Environment) object.IObject {
 		env.Set(node.Name.Value, val)
 	case *ast.Identifier:
 		return evalIdentifier(node, env)
+	case *ast.FunctionLiteral:
+		params := node.Parameters
+		body := node.Body
+		return &object.Function{Parameters: params, Body: body, Env: env}
+	case *ast.CallExpression:
+		function := Eval(node.Func, env)
+		if isError(function) {
+			return function
+		}
+
+		args := evalExpressions(node.Arguments, env)
+		if len(args) == 1 && isError(args[0]) {
+			return args[0]
+		}
+		return applyFunction(function, args)
 	}
 	return nil
 }
@@ -207,6 +222,20 @@ func evalIdentifier(node *ast.Identifier, env *object.Environment) object.IObjec
 	return val
 }
 
+func evalExpressions(exps []ast.IExpression, env *object.Environment) []object.IObject {
+	var results []object.IObject
+
+	for _, exp := range exps {
+		evaluated := Eval(exp, env)
+		if isError(evaluated) {
+			return []object.IObject{evaluated}
+		}
+		results = append(results, evaluated)
+	}
+
+	return results
+}
+
 func newError(format string, a ...any) *object.Error {
 	return &object.Error{Message: fmt.Sprintf(format, a...)}
 }
@@ -216,4 +245,31 @@ func isError(obj object.IObject) bool {
 		return obj.Type() == object.ERROR_OBJ
 	}
 	return false
+}
+
+func applyFunction(fn object.IObject, args []object.IObject) object.IObject {
+	fnObj, ok := fn.(*object.Function)
+	if !ok {
+		return newError("not a function: %s", fn.Type())
+	}
+
+	extendedEnv := extendedFunctionEnv(fnObj, args)
+	evaluated := Eval(fnObj.Body, extendedEnv)
+	return unwrapReturnValue(evaluated)
+}
+
+func extendedFunctionEnv(fn *object.Function, args []object.IObject) *object.Environment {
+	env := object.NewWrappedEnvironment(fn.Env)
+
+	for i, param := range fn.Parameters {
+		env.Set(param.Value, args[i])
+	}
+	return env
+}
+
+func unwrapReturnValue(obj object.IObject) object.IObject {
+	if returnValue, ok := obj.(*object.ReturnValue); ok {
+		return returnValue.Value
+	}
+	return obj
 }

@@ -1,6 +1,11 @@
 package object
 
-import "fmt"
+import (
+	"BigTalk_Interpreter/ast"
+	"bytes"
+	"fmt"
+	"strings"
+)
 
 type ObjectType string
 
@@ -10,6 +15,7 @@ const (
 	NULL_OBJ         = "NULL"
 	RETURN_VALUE_OBJ = "RETURN_VALUE"
 	ERROR_OBJ        = "ERROR"
+	FUNCTION_ONJ     = "FUNCTION"
 )
 
 type IObject interface {
@@ -73,4 +79,32 @@ func (e *Error) Type() ObjectType {
 
 func (e *Error) Inspect() string {
 	return fmt.Sprintf("ERROR: %s", e.Message)
+}
+
+type Function struct {
+	Parameters []*ast.Identifier
+	Body       *ast.BlockStatement
+	Env        *Environment
+}
+
+func (f *Function) Type() ObjectType {
+	return FUNCTION_ONJ
+}
+
+func (f *Function) Inspect() string {
+	var out bytes.Buffer
+	var params []string
+
+	for _, p := range f.Parameters {
+		params = append(params, p.String())
+	}
+
+	out.WriteString("fn")
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString(") {\n")
+	out.WriteString(f.Body.String())
+	out.WriteString("\n}")
+
+	return out.String()
 }
