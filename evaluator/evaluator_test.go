@@ -7,6 +7,35 @@ import (
 	"testing"
 )
 
+func TestBuiltinFunctions(t *testing.T) {
+	testCases := []struct {
+		input    string
+		expected any
+	}{
+		{`len("")`, 0},
+		{`len("one")`, 3},
+		{`len("hello world!")`, 12},
+		{`len(1)`, "argument to `len` not supported, got INTEGER"},
+		{`len("one", "two")`, "wrong number of arguments. got=2, want=1"},
+	}
+	for _, tc := range testCases {
+		evaluated := setupEval(tc.input)
+		switch expected := tc.expected.(type) {
+		case int:
+			testIntegerObject(t, evaluated, int64(expected))
+		case string:
+			errObj, ok := evaluated.(*object.Error)
+			if !ok {
+				t.Errorf("evaluated is not Error. got=%T (%+v)", evaluated, evaluated)
+				continue
+			}
+			if errObj.Message != expected {
+				t.Errorf("errObj.Message = %q, want = %q", errObj.Message, expected)
+			}
+		}
+	}
+}
+
 func TestStringConcatenation(t *testing.T) {
 	input := `"Hello" + " " + "world!!"`
 
