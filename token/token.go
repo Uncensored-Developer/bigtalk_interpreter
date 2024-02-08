@@ -7,8 +7,9 @@ const (
 	EOF     = "EOF"
 
 	// Identifiers and literals
-	IDENT = "IDENT"
-	INT   = "INT"
+	IDENT  = "IDENT"
+	INT    = "INT"
+	STRING = "STRING"
 
 	// Operators
 	ASSIGN   = "="
@@ -23,13 +24,14 @@ const (
 	NOT_EQ   = "!="
 
 	// Delimeters
-	COMMA     = ","
-	SEMICOLON = ";"
-
-	LPAREN = "("
-	RPAREN = ")"
-	LBRACE = "{"
-	RBRACE = "}"
+	COMMA         = ","
+	SEMICOLON     = ";"
+	LPAREN        = "("
+	RPAREN        = ")"
+	LBRACE        = "{"
+	RBRACE        = "}"
+	L_SQR_BRACKET = "["
+	R_SQR_BRACKET = "]"
 
 	// Keywords
 	FUNCTION = "FUNCTION"
@@ -39,8 +41,6 @@ const (
 	IF       = "IF"
 	ELSE     = "ELSE"
 	RETURN   = "RETURN"
-
-	STRING = "STRING"
 )
 
 type TokenType string
