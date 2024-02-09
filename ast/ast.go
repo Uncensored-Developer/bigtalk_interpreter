@@ -395,3 +395,33 @@ func (i *IndexExpression) String() string {
 
 	return out.String()
 }
+
+// MapLiteral
+// Basic structure: {<expression> : <expression>, <expression> : <expression>, ... }
+type MapLiteral struct {
+	Token token.Token // token.LBRACE
+	Pairs map[IExpression]IExpression
+}
+
+func (m *MapLiteral) expressionNode() {
+
+}
+
+func (m *MapLiteral) TokenLiteral() string {
+	return m.Token.Literal
+}
+
+func (m *MapLiteral) String() string {
+	var out bytes.Buffer
+
+	var pairs []string
+	for key, value := range m.Pairs {
+		pairs = append(pairs, key.String()+":"+value.String())
+	}
+
+	out.WriteString("{")
+	out.WriteString(strings.Join(pairs, ", "))
+	out.WriteString("}")
+
+	return out.String()
+}
