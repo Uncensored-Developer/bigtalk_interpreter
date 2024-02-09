@@ -1,6 +1,9 @@
 package evaluator
 
-import "BigTalk_Interpreter/object"
+import (
+	"BigTalk_Interpreter/object"
+	"fmt"
+)
 
 var builtins = map[string]*object.Builtin{
 	"len": &object.Builtin{
@@ -54,6 +57,14 @@ var builtins = map[string]*object.Builtin{
 			copy(newItems, arr.Items)
 			newItems[length] = args[1]
 			return &object.Array{Items: newItems}
+		},
+	},
+	"print": &object.Builtin{
+		Fn: func(args ...object.IObject) object.IObject {
+			for _, arg := range args {
+				fmt.Println(arg.Inspect())
+			}
+			return NULL
 		},
 	},
 }
