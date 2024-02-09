@@ -85,6 +85,10 @@ func (l *Lexer) NextToken() token.Token {
 	case '"':
 		tok.Type = token.STRING
 		tok.Literal = l.readString()
+	case '[':
+		tok = token.Token{Type: token.L_SQR_BRACKET, Literal: string(l.chr)}
+	case ']':
+		tok = token.Token{Type: token.R_SQR_BRACKET, Literal: string(l.chr)}
 	default:
 		if isLetter(l.chr) {
 			tok.Literal = l.readIdentifier()
