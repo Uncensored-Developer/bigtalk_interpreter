@@ -317,6 +317,8 @@ func evalIndexExpression(left, index object.IObject) object.IObject {
 	switch {
 	case left.Type() == object.ARRAY_OBJ && index.Type() == object.INTEGER_OBJ:
 		return evalArrayIndexExpression(left, index)
+	case left.Type() == object.HASH_OBJ:
+		return evalMapIndexExpression(left, index)
 	default:
 		return newError("index operator not supported: %s", left.Type())
 	}
@@ -358,4 +360,20 @@ func evalMapLiteral(node *ast.MapLiteral, env *object.Environment) object.IObjec
 	}
 
 	return &object.Map{Pairs: pairs}
+}
+
+func evalMapIndexExpression(hashMap, index object.IObject) object.IObject {
+	mapObj := hashMap.(*object.Map)
+
+	key, ok := index.(object.IHashable)
+	if !ok {
+		return newError("unusable as hash key: %s", index.Type())
+	}
+
+	pair, ok := mapObj.Pairs[key.HashKey()]
+	if !ok {
+		return NULL
+	}
+
+	return pair.Value
 }

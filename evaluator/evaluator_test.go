@@ -8,6 +8,52 @@ import (
 	"testing"
 )
 
+func TestMapIndexExpressions(t *testing.T) {
+	testCases := []struct {
+		input    string
+		expected any
+	}{
+		{
+			`{"key": 5}["key"]`,
+			5,
+		},
+		{
+			`{"key": 5}["key1"]`,
+			nil,
+		},
+		{
+			`let key = "foo"; {"foo": 5}[key]`,
+			5,
+		},
+		{
+			`{}["foo"]`,
+			nil,
+		},
+		{
+			`{5: 5}[5]`,
+			5,
+		},
+		{
+			`{true: 5}[true]`,
+			5,
+		},
+		{
+			`{false: 5}[false]`,
+			5,
+		},
+	}
+
+	for _, tc := range testCases {
+		evaluated := setupEval(tc.input)
+		integer, ok := tc.expected.(int)
+		if ok {
+			testIntegerObject(t, evaluated, int64(integer))
+		} else {
+			testNullObject(t, evaluated)
+		}
+	}
+}
+
 func TestHashLiteral(t *testing.T) {
 	input := `let two = "two";
 {
@@ -320,6 +366,10 @@ return 1;
 		{
 			`"Hello" - "World"`,
 			"unknown operator: STRING - STRING",
+		},
+		{
+			`{"key": "value"}[fn(x) { x }];`,
+			"unusable as hash key: FUNCTION",
 		},
 	}
 
