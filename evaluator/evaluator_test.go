@@ -4,6 +4,7 @@ import (
 	"BigTalk_Interpreter/lexer"
 	"BigTalk_Interpreter/object"
 	"BigTalk_Interpreter/parser"
+	"fmt"
 	"testing"
 )
 
@@ -93,8 +94,15 @@ func TestBuiltinFunctions(t *testing.T) {
 		{`len("hello world!")`, 12},
 		{`len(1)`, "argument to `len` not supported, got INTEGER"},
 		{`len("one", "two")`, "wrong number of arguments. got=2, want=1"},
+		{`len([1, 2, 3])`, 3},
+		{`len([])`, 0},
+		{`tail([1, 2, 3])`, []int{2, 3}},
+		{`tail([])`, nil},
+		{`push([], 1)`, []int{1}},
+		{`push(1, 1)`, "argument to `push` must be ARRAY, got INTEGER"},
 	}
 	for _, tc := range testCases {
+		fmt.Println(tc.input)
 		evaluated := setupEval(tc.input)
 		switch expected := tc.expected.(type) {
 		case int:
@@ -107,6 +115,23 @@ func TestBuiltinFunctions(t *testing.T) {
 			}
 			if errObj.Message != expected {
 				t.Errorf("errObj.Message = %q, want = %q", errObj.Message, expected)
+			}
+		case nil:
+			testNullObject(t, evaluated)
+		case []int:
+			array, ok := evaluated.(*object.Array)
+			if !ok {
+				t.Errorf("evaluated is not *object.Array. got=%T (%+v)", evaluated, evaluated)
+				continue
+			}
+
+			if len(array.Items) != len(expected) {
+				t.Errorf("len(array.Items) = %d, want %d", len(array.Items), len(expected))
+				continue
+			}
+
+			for i, item := range expected {
+				testIntegerObject(t, array.Items[i], int64(item))
 			}
 		}
 	}
