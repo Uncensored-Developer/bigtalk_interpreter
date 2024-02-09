@@ -16,7 +16,8 @@ const (
 	SUM
 	PRODUCT
 	PREFIX // -x or !x
-	CALL   // aFunction(x)
+	CALL
+	INDEX // aFunction(x)
 )
 
 type (
@@ -25,15 +26,16 @@ type (
 )
 
 var precedences = map[token.TokenType]int{
-	token.EQ:       EQUALS,
-	token.NOT_EQ:   EQUALS,
-	token.LT:       LESSGREATER,
-	token.GT:       LESSGREATER,
-	token.PLUS:     SUM,
-	token.MINUS:    SUM,
-	token.SLASH:    PRODUCT,
-	token.ASTERISK: PRODUCT,
-	token.LPAREN:   CALL,
+	token.EQ:            EQUALS,
+	token.NOT_EQ:        EQUALS,
+	token.LT:            LESSGREATER,
+	token.GT:            LESSGREATER,
+	token.PLUS:          SUM,
+	token.MINUS:         SUM,
+	token.SLASH:         PRODUCT,
+	token.ASTERISK:      PRODUCT,
+	token.LPAREN:        CALL,
+	token.L_SQR_BRACKET: INDEX,
 }
 
 type Parser struct {
@@ -76,6 +78,7 @@ func NewParser(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.LT, p.parseInfixExpression)
 	p.registerInfix(token.GT, p.parseInfixExpression)
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
+	p.registerInfix(token.L_SQR_BRACKET, p.parseIndexExpression)
 
 	// Read two tokens, so curToken and peekToken are set
 	p.nextToken()
@@ -446,4 +449,17 @@ func (p *Parser) parseExpressionList(end token.TokenType) []ast.IExpression {
 	}
 
 	return list
+}
+
+func (p *Parser) parseIndexExpression(left ast.IExpression) ast.IExpression {
+	exp := &ast.IndexExpression{Token: p.currentToken, Left: left}
+	p.nextToken()
+
+	exp.Index = p.parseExpression(LOWEST)
+
+	if !p.expectPeek(token.R_SQR_BRACKET) {
+		return nil
+	}
+
+	return exp
 }

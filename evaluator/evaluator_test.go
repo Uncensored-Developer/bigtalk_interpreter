@@ -7,6 +7,82 @@ import (
 	"testing"
 )
 
+func TestEvalArrayIndexExpression(t *testing.T) {
+	testCases := []struct {
+		input    string
+		expected any
+	}{
+		{
+			"[1, 2, 3][0]",
+			1,
+		},
+		{
+			"[1, 2, 3][1]",
+			2,
+		},
+		{
+			"[1, 2, 3][2]",
+			3,
+		},
+		{
+			"let i = 0; [1][i];",
+			1,
+		},
+		{
+			"[1, 2, 3][1 + 1];",
+			3,
+		},
+		{
+			"let myArray = [1, 2, 3]; myArray[2];",
+			3,
+		},
+		{
+			"let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2];",
+			6,
+		},
+		{
+			"let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i]",
+			2,
+		},
+		{
+			"[1, 2, 3][3]",
+			nil,
+		},
+		{
+			"[1, 2, 3][-1]",
+			nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		evaluated := setupEval(tc.input)
+		integer, ok := tc.expected.(int)
+		if ok {
+			testIntegerObject(t, evaluated, int64(integer))
+		} else {
+			testNullObject(t, evaluated)
+		}
+	}
+}
+
+func TestEvalArrayLiteral(t *testing.T) {
+	input := "[1, 2 + 3, 4 * 5]"
+
+	evaluated := setupEval(input)
+	result, ok := evaluated.(*object.Array)
+	if !ok {
+		t.Fatalf("evaluated is not *object.Array, got = %T (%+v)", evaluated, evaluated)
+	}
+
+	if len(result.Items) != 3 {
+		t.Fatalf("len(result.Items) = %d, want %d", len(result.Items), 3)
+	}
+
+	testIntegerObject(t, result.Items[0], 1)
+	testIntegerObject(t, result.Items[1], 5)
+	testIntegerObject(t, result.Items[2], 20)
+}
+
 func TestBuiltinFunctions(t *testing.T) {
 	testCases := []struct {
 		input    string
