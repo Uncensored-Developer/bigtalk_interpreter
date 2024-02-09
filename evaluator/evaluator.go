@@ -91,6 +91,8 @@ func Eval(node ast.INode, env *object.Environment) object.IObject {
 			return index
 		}
 		return evalIndexExpression(left, index)
+	case *ast.MapLiteral:
+		return evalMapLiteral(node, env)
 	}
 	return nil
 }
@@ -330,4 +332,30 @@ func evalArrayIndexExpression(array, index object.IObject) object.IObject {
 	}
 
 	return arrayObj.Items[idx]
+}
+
+func evalMapLiteral(node *ast.MapLiteral, env *object.Environment) object.IObject {
+	pairs := make(map[object.HashKey]object.MapPair)
+
+	for k, v := range node.Pairs {
+		key := Eval(k, env)
+		if isError(key) {
+			return key
+		}
+
+		hashKey, ok := key.(object.IHashable)
+		if !ok {
+			return newError("unusable hash key: %s", key.Type())
+		}
+
+		value := Eval(v, env)
+		if isError(value) {
+			return value
+		}
+
+		hashed := hashKey.HashKey()
+		pairs[hashed] = object.MapPair{Key: key, Value: value}
+	}
+
+	return &object.Map{Pairs: pairs}
 }
