@@ -10,6 +10,11 @@ func NewEnvironment() *Environment {
 	return &Environment{store: s}
 }
 
+// NewWrappedEnvironment creates a new environment that wraps an existing environment.
+// The new environment has the given outer environment, which can be nil.
+// The new environment is used to extend an environment with additional bindings,
+// while preserving access to the outer environment's bindings.
+// Returns the new environment.
 func NewWrappedEnvironment(outer *Environment) *Environment {
 	env := NewEnvironment()
 	env.outer = outer
