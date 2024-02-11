@@ -108,6 +108,8 @@ func (l *Lexer) NextToken() token.Token {
 	return tok
 }
 
+// readIdentifier reads characters from the input string until a non-letter character is encountered.
+// It returns the substring of the input string starting from the original position
 func (l *Lexer) readIdentifier() string {
 	position := l.position
 	for isLetter(l.chr) {
@@ -116,6 +118,8 @@ func (l *Lexer) readIdentifier() string {
 	return l.input[position:l.position]
 }
 
+// eatWhitespace iterates over the input string and moves the read position until it encounters a non-whitespace character.
+// The whitespace characters it removes are ' ', '\t', '\n', and '\r'.
 func (l *Lexer) eatWhitespace() {
 	for l.chr == ' ' || l.chr == '\t' || l.chr == '\n' || l.chr == '\r' {
 		l.readChar()
@@ -130,6 +134,9 @@ func (l *Lexer) readNumber() string {
 	return l.input[position:l.position]
 }
 
+// peekChar returns the next character in the lexer's input string without advancing the read position.
+// If the read position is at the end of the input string, it returns 0 to indicate the end of the input.
+// Otherwise, it returns the character at the read position in the input string.
 func (l *Lexer) peekChar() byte {
 	if l.readPosition >= len(l.input) {
 		return 0
@@ -137,6 +144,11 @@ func (l *Lexer) peekChar() byte {
 	return l.input[l.readPosition]
 }
 
+// readString reads a string from the input starting from the current position.
+// It advances the lexer until it encounters a closing double quote character or reaches the end of the input.
+// The substring between the current position and the position before the closing double quote is returned as the string.
+// If the lexer reaches the end of the input without encountering a closing double quote, the substring until the end of the input is returned.
+// The position of the lexer is updated accordingly.
 func (l *Lexer) readString() string {
 	pos := l.position + 1
 	for {

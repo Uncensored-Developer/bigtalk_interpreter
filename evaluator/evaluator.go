@@ -12,6 +12,7 @@ var (
 	FALSE = &object.Boolean{Value: false}
 )
 
+// Eval evaluates the abstract syntax tree (AST) node and returns its computed value or an error.
 func Eval(node ast.INode, env *object.Environment) object.IObject {
 	switch node := node.(type) {
 	case *ast.Program:
@@ -151,6 +152,16 @@ func evalMinusPrefixOperatorExpression(right object.IObject) object.IObject {
 	return &object.Integer{Value: -value}
 }
 
+// evalInfixExpression evaluates the given infix expression node and returns the result of the computation.
+// It supports various operators including arithmetic and comparison operators for integers and string concatenation for strings.
+// If the operator and operands have incompatible types, it returns an error.
+// Supported operator: "+", "-", "*", "/", "==", "!=", "<", ">", "+"
+// Parameters: operator (string) - the operator to evaluate
+//
+//	left (object.IObject) - the left operand
+//	right (object.IObject) - the right operand
+//
+// Returns: object.IObject - the result of the computation or an error
 func evalInfixExpression(operator string, left, right object.IObject) object.IObject {
 	switch {
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
@@ -284,6 +295,15 @@ func isError(obj object.IObject) bool {
 	return false
 }
 
+// applyFunction applies a function object to a list of arguments and returns the result.
+// If the function object is of type *object.Function, it creates an extended environment by
+// setting the function's parameters as keys and the arguments as values, and then evaluates
+// the function's body in this extended environment. The result is then unwrapped, removing
+// any return value wrapper.
+// If the function object is of type *object.Builtin, it simply calls the builtin function
+// passing the arguments as arguments.
+// If the function object is of any other type, it returns an error object indicating that
+// the object is not a function.
 func applyFunction(fn object.IObject, args []object.IObject) object.IObject {
 	switch fn := fn.(type) {
 	case *object.Function:
@@ -336,6 +356,12 @@ func evalArrayIndexExpression(array, index object.IObject) object.IObject {
 	return arrayObj.Items[idx]
 }
 
+// evalMapLiteral evaluates the map literal AST node and returns a Map object.
+// It iterates over the key-value pairs in the node and evaluates each key and value.
+// If there is an error during evaluation, it returns the error.
+// If a key is not hashable, it returns an error.
+// It then creates a MapPair with the evaluated key and value, and adds it to the pairs map.
+// Finally, it returns a new Map object with the computed pairs.
 func evalMapLiteral(node *ast.MapLiteral, env *object.Environment) object.IObject {
 	pairs := make(map[object.HashKey]object.MapPair)
 

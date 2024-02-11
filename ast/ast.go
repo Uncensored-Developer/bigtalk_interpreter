@@ -41,6 +41,8 @@ func (p *Program) TokenLiteral() string {
 	return ""
 }
 
+// LetStatement
+// Basic Structure: let <identifier> = <expression>;
 type LetStatement struct {
 	Token token.Token // token.LET
 	Name  *Identifier
@@ -76,9 +78,9 @@ func (i *Identifier) String() string {
 	return i.Value
 }
 
-func (l *Identifier) expressionNode() {}
-func (l *Identifier) TokenLiteral() string {
-	return l.Token.Literal
+func (i *Identifier) expressionNode() {}
+func (i *Identifier) TokenLiteral() string {
+	return i.Token.Literal
 }
 
 type ReturnStatement struct {
