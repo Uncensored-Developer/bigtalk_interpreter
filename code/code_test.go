@@ -29,3 +29,57 @@ func TestMakeInstruction(t *testing.T) {
 		}
 	}
 }
+
+func TestInstructions_String(t *testing.T) {
+	instructions := []Instructions{
+		MakeInstruction(OpConstant, 1),
+		MakeInstruction(OpConstant, 2),
+		MakeInstruction(OpConstant, 65535),
+	}
+	expected := `0000 OpConstant 1
+0003 OpConstant 2
+0006 OpConstant 65535
+`
+
+	concatenated := Instructions{}
+	for _, ins := range instructions {
+		concatenated = append(concatenated, ins...)
+	}
+
+	if concatenated.String() != expected {
+		t.Errorf("wrongly formatted instructions. got = %q, want = %q", concatenated.String(), expected)
+	}
+}
+
+func TestReadOperands(t *testing.T) {
+	testCases := []struct {
+		name      string
+		op        Opcode
+		operands  []int
+		bytesRead int
+	}{
+		{"OpConstant", OpConstant, []int{65535}, 2},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			instruction := MakeInstruction(tc.op, tc.operands...)
+
+			def, err := Lookup(byte(tc.op))
+			if err != nil {
+				t.Fatalf("definition not found: %q", err)
+			}
+
+			operandsRead, n := ReadOperands(def, instruction[1:])
+			if n != tc.bytesRead {
+				t.Fatalf("n wrong. got = %d, want = %d", n, tc.bytesRead)
+			}
+
+			for i, want := range tc.operands {
+				if operandsRead[i] != want {
+					t.Errorf("operand wrong. got = %d, want = %d", operandsRead[i], want)
+				}
+			}
+		})
+	}
+}
