@@ -43,6 +43,14 @@ func (v *VirtualMachine) Run() error {
 			if err != nil {
 				return err
 			}
+		case code.OppAdd:
+			right := v.pop()
+			left := v.pop()
+			leftValue := left.(*object.Integer).Value
+			rightValue := right.(*object.Integer).Value
+
+			sum := leftValue + rightValue
+			v.push(&object.Integer{Value: sum})
 		}
 	}
 	return nil
@@ -55,4 +63,10 @@ func (v *VirtualMachine) push(obj object.IObject) error {
 	v.stack[v.sp] = obj
 	v.sp++
 	return nil
+}
+
+func (v *VirtualMachine) pop() object.IObject {
+	obj := v.stack[v.sp-1]
+	v.sp--
+	return obj
 }

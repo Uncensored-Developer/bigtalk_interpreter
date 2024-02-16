@@ -4,6 +4,7 @@ import (
 	"BigTalk_Interpreter/ast"
 	"BigTalk_Interpreter/code"
 	"BigTalk_Interpreter/object"
+	"fmt"
 )
 
 type ByteCode struct {
@@ -46,6 +47,13 @@ func (c *Compiler) Compile(node ast.INode) error {
 		err = c.Compile(node.RightValue)
 		if err != nil {
 			return err
+		}
+
+		switch node.Operator {
+		case "+":
+			c.emit(code.OppAdd)
+		default:
+			return fmt.Errorf("invalid operator %s", node.Operator)
 		}
 	case *ast.IntegerLiteral:
 		integer := &object.Integer{Value: node.Value}

@@ -19,7 +19,7 @@ func TestIntegerArithmetic(t *testing.T) {
 	testCases := []vmTestCase{
 		{"1", 1},
 		{"2", 2},
-		{"1 + 2", 2},
+		{"1 + 2", 3},
 	}
 	runVmTests(t, testCases)
 }

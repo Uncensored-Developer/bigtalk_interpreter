@@ -38,6 +38,8 @@ func (ins Instructions) fmtInstruction(def *OpcodeDefinition, operands []int) st
 	switch operandsCount {
 	case 1:
 		return fmt.Sprintf("%s %d", def.Name, operands[0])
+	case 0:
+		return def.Name
 	}
 
 	return fmt.Sprintf("ERROR: unhandled operandCount for %s\n", def.Name)
@@ -48,6 +50,7 @@ type Opcode byte
 // Opcodes definitions
 const (
 	OpConstant Opcode = iota
+	OppAdd
 )
 
 type OpcodeDefinition struct {
@@ -59,6 +62,10 @@ var definitions = map[Opcode]*OpcodeDefinition{
 	OpConstant: {
 		Name:          "OpConstant",
 		OperandWidths: []int{2}, // 2 bytes wide
+	},
+	OppAdd: {
+		Name:          "OpAdd",
+		OperandWidths: []int{},
 	},
 }
 
