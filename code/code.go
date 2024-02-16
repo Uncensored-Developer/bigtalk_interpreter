@@ -98,6 +98,8 @@ func MakeInstruction(op Opcode, operands ...int) []byte {
 	return instruction
 }
 
+// ReadOperands reads the operands of an instruction based on the given OpcodeDefinition and Instructions.
+// It returns the operands as a slice of integers and the number of bytes read.
 func ReadOperands(def *OpcodeDefinition, ins Instructions) ([]int, int) {
 	operands := make([]int, len(def.OperandWidths))
 	offset := 0
