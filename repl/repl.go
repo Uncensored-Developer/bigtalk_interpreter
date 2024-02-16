@@ -1,10 +1,10 @@
 package repl
 
 import (
-	"BigTalk_Interpreter/evaluator"
+	"BigTalk_Interpreter/compiler"
 	"BigTalk_Interpreter/lexer"
-	"BigTalk_Interpreter/object"
 	"BigTalk_Interpreter/parser"
+	"BigTalk_Interpreter/vm"
 	"bufio"
 	"fmt"
 	"io"
@@ -14,7 +14,6 @@ const PROMPT = ">> "
 
 func Start(in io.Reader, out io.Writer) {
 	scanner := bufio.NewScanner(in)
-	env := object.NewEnvironment()
 
 	for {
 		fmt.Print(PROMPT)
@@ -33,11 +32,22 @@ func Start(in io.Reader, out io.Writer) {
 			continue
 		}
 
-		evaluated := evaluator.Eval(program, env)
-		if evaluated != nil {
-			io.WriteString(out, evaluated.Inspect())
-			io.WriteString(out, "\n")
+		comp := compiler.NewCompiler()
+		err := comp.Compile(program)
+		if err != nil {
+			fmt.Fprintf(out, "Compilation error:\n %s\n", err)
+			continue
 		}
+
+		vMachine := vm.NewVirtualMachine(comp.ByteCode())
+		err = vMachine.Run()
+		if err != nil {
+			fmt.Fprintf(out, "Bytecode execution error:\n %s\n", err)
+			continue
+		}
+
+		top := vMachine.StackTop()
+		io.WriteString(out, fmt.Sprintf("%s\n", top.Inspect()))
 	}
 }
 
