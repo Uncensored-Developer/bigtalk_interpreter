@@ -25,11 +25,8 @@ func NewVirtualMachine(bytecode *compiler.ByteCode) *VirtualMachine {
 	}
 }
 
-func (v *VirtualMachine) StackTop() object.IObject {
-	if v.sp == 0 {
-		return nil
-	}
-	return v.stack[v.sp-1]
+func (v *VirtualMachine) LastPoppedStackElement() object.IObject {
+	return v.stack[v.sp]
 }
 
 func (v *VirtualMachine) Run() error {
@@ -43,7 +40,7 @@ func (v *VirtualMachine) Run() error {
 			if err != nil {
 				return err
 			}
-		case code.OppAdd:
+		case code.OpAdd:
 			right := v.pop()
 			left := v.pop()
 			leftValue := left.(*object.Integer).Value
@@ -51,6 +48,8 @@ func (v *VirtualMachine) Run() error {
 
 			sum := leftValue + rightValue
 			v.push(&object.Integer{Value: sum})
+		case code.OpPop:
+			v.pop()
 		}
 	}
 	return nil

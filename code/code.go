@@ -50,7 +50,8 @@ type Opcode byte
 // Opcodes definitions
 const (
 	OpConstant Opcode = iota
-	OppAdd
+	OpAdd
+	OpPop
 )
 
 type OpcodeDefinition struct {
@@ -63,8 +64,12 @@ var definitions = map[Opcode]*OpcodeDefinition{
 		Name:          "OpConstant",
 		OperandWidths: []int{2}, // 2 bytes wide
 	},
-	OppAdd: {
+	OpAdd: {
 		Name:          "OpAdd",
+		OperandWidths: []int{},
+	},
+	OpPop: {
+		Name:          "OpPop",
 		OperandWidths: []int{},
 	},
 }

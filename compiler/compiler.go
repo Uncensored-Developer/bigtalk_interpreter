@@ -38,6 +38,7 @@ func (c *Compiler) Compile(node ast.INode) error {
 		if err != nil {
 			return err
 		}
+		c.emit(code.OpPop)
 	case *ast.InfixExpression:
 		err := c.Compile(node.LeftValue)
 		if err != nil {
@@ -51,7 +52,7 @@ func (c *Compiler) Compile(node ast.INode) error {
 
 		switch node.Operator {
 		case "+":
-			c.emit(code.OppAdd)
+			c.emit(code.OpAdd)
 		default:
 			return fmt.Errorf("invalid operator %s", node.Operator)
 		}

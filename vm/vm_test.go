@@ -21,7 +21,7 @@ func TestIntegerArithmetic(t *testing.T) {
 		{"2", 2},
 		{"1 + 2", 3},
 	}
-	runVmTests(t, testCases)
+	runVirtualMachineTests(t, testCases)
 }
 
 func parse(input string) *ast.Program {
@@ -42,7 +42,7 @@ func testIntegerObject(expected int64, actual object.IObject) error {
 	return nil
 }
 
-func runVmTests(t *testing.T, testCases []vmTestCase) {
+func runVirtualMachineTests(t *testing.T, testCases []vmTestCase) {
 	t.Helper()
 
 	for _, tc := range testCases {
@@ -60,9 +60,9 @@ func runVmTests(t *testing.T, testCases []vmTestCase) {
 			t.Fatalf("vm error: %s", err)
 		}
 
-		stackItem := vm.StackTop()
+		stackElement := vm.LastPoppedStackElement()
 
-		testExpectedObject(t, tc.expected, stackItem)
+		testExpectedObject(t, tc.expected, stackElement)
 	}
 }
 
