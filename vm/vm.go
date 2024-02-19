@@ -67,6 +67,16 @@ func (v *VirtualMachine) Run() error {
 			if err != nil {
 				return err
 			}
+		case code.OpBang:
+			err := v.executeBangOperator()
+			if err != nil {
+				return err
+			}
+		case code.OpMinus:
+			err := v.executeMinusOperator()
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -153,6 +163,30 @@ func (v *VirtualMachine) executeIntegerComparison(op code.Opcode, left, right ob
 	default:
 		return fmt.Errorf("unknown operator: %d", op)
 	}
+}
+
+func (v *VirtualMachine) executeBangOperator() error {
+	operand := v.pop()
+
+	switch operand {
+	case True:
+		return v.push(False)
+	case False:
+		return v.push(True)
+	default:
+		return v.push(False)
+	}
+}
+
+func (v *VirtualMachine) executeMinusOperator() error {
+	operand := v.pop()
+
+	if operand.Type() != object.INTEGER_OBJ {
+		return fmt.Errorf("unsupported type for -: %s", operand.Type())
+	}
+
+	value := operand.(*object.Integer).Value
+	return v.push(&object.Integer{Value: -value})
 }
 
 func nativeBoolToBooleanObject(input bool) *object.Boolean {

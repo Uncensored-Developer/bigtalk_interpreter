@@ -36,6 +36,12 @@ func TestVirtualMachineBooleanExpressions(t *testing.T) {
 		{"(1 < 2) == false", false},
 		{"(1 > 2) == true", false},
 		{"(1 > 2) == false", true},
+		{"!true", false},
+		{"!false", true},
+		{"!3", false},
+		{"!!true", true},
+		{"!!false", false},
+		{"!!3", true},
 	}
 	runVirtualMachineTests(t, testCases)
 }
@@ -54,6 +60,10 @@ func TestVirtualMachineIntegerArithmetic(t *testing.T) {
 		{"5 * 2 + 10", 20},
 		{"5 + 2 * 10", 25},
 		{"5 * (2 + 10)", 60},
+		{"-1", -1},
+		{"-10", -10},
+		{"-50 + 100 + -50", 0},
+		{"(5 + 10 * 2 + 15 / 3) * 2 + -10", 50},
 	}
 	runVirtualMachineTests(t, testCases)
 }
