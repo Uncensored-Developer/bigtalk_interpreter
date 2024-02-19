@@ -62,6 +62,9 @@ const (
 	OpGreaterThan
 	OpBang
 	OpMinus
+	OpJump
+	OpJumpNotTruthy
+	OpNull
 )
 
 type OpcodeDefinition struct {
@@ -120,6 +123,18 @@ var definitions = map[Opcode]*OpcodeDefinition{
 	},
 	OpMinus: {
 		Name:          "OpMinus",
+		OperandWidths: []int{},
+	},
+	OpJump: {
+		Name:          "OpJump",
+		OperandWidths: []int{2},
+	},
+	OpJumpNotTruthy: {
+		Name:          "OpJumpNotTruthy",
+		OperandWidths: []int{2},
+	},
+	OpNull: {
+		Name:          "OpNull",
 		OperandWidths: []int{},
 	},
 }
