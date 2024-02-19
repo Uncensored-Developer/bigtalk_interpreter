@@ -62,6 +62,11 @@ func (v *VirtualMachine) Run() error {
 			if err != nil {
 				return err
 			}
+		case code.OpEqual, code.OpNotEqual, code.OpGreaterThan:
+			err := v.executeComparison(op)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -114,4 +119,45 @@ func (v *VirtualMachine) executeBinaryIntegerOperation(op code.Opcode, left, rig
 		return fmt.Errorf("unknown integer operator: %d", op)
 	}
 	return v.push(&object.Integer{Value: result})
+}
+
+func (v *VirtualMachine) executeComparison(op code.Opcode) error {
+	right := v.pop()
+	left := v.pop()
+
+	if left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ {
+		return v.executeIntegerComparison(op, left, right)
+	}
+
+	switch op {
+	case code.OpEqual:
+		return v.push(nativeBoolToBooleanObject(right == left))
+	case code.OpNotEqual:
+		return v.push(nativeBoolToBooleanObject(right != left))
+	default:
+		return fmt.Errorf("unknown operator: %d (%s %s)", op, left.Type(), right.Type())
+	}
+}
+
+func (v *VirtualMachine) executeIntegerComparison(op code.Opcode, left, right object.IObject) error {
+	leftValue := left.(*object.Integer).Value
+	rightValue := right.(*object.Integer).Value
+
+	switch op {
+	case code.OpEqual:
+		return v.push(nativeBoolToBooleanObject(leftValue == rightValue))
+	case code.OpNotEqual:
+		return v.push(nativeBoolToBooleanObject(leftValue != rightValue))
+	case code.OpGreaterThan:
+		return v.push(nativeBoolToBooleanObject(leftValue > rightValue))
+	default:
+		return fmt.Errorf("unknown operator: %d", op)
+	}
+}
+
+func nativeBoolToBooleanObject(input bool) *object.Boolean {
+	if input {
+		return True
+	}
+	return False
 }

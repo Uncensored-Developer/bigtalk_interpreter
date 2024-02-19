@@ -34,6 +34,66 @@ func TestCompileBooleanExpressions(t *testing.T) {
 				code.MakeInstruction(code.OpPop),
 			},
 		},
+		{
+			input:             "1 == 2",
+			expectedConstants: []any{1, 2},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpConstant, 0),
+				code.MakeInstruction(code.OpConstant, 1),
+				code.MakeInstruction(code.OpEqual),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+		{
+			input:             "1 != 2",
+			expectedConstants: []any{1, 2},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpConstant, 0),
+				code.MakeInstruction(code.OpConstant, 1),
+				code.MakeInstruction(code.OpNotEqual),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+		{
+			input:             "true == false",
+			expectedConstants: []any{},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpTrue),
+				code.MakeInstruction(code.OpFalse),
+				code.MakeInstruction(code.OpEqual),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+		{
+			input:             "true != false",
+			expectedConstants: []any{},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpTrue),
+				code.MakeInstruction(code.OpFalse),
+				code.MakeInstruction(code.OpNotEqual),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+		{
+			input:             "1 > 2",
+			expectedConstants: []any{1, 2},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpConstant, 0),
+				code.MakeInstruction(code.OpConstant, 1),
+				code.MakeInstruction(code.OpGreaterThan),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+		{
+			input:             "1 < 2",
+			expectedConstants: []any{2, 1},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpConstant, 0),
+				code.MakeInstruction(code.OpConstant, 1),
+				code.MakeInstruction(code.OpGreaterThan),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
 	}
 	runCompilerTests(t, testCases)
 }
