@@ -16,6 +16,38 @@ type compilerTestCase struct {
 	expectedInstructions []code.Instructions
 }
 
+func TestCompileConditionals(t *testing.T) {
+	testCases := []compilerTestCase{
+		{
+			input:             "if (true) { 10 }; 20;",
+			expectedConstants: []any{10, 20},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpTrue),             // 0000
+				code.MakeInstruction(code.OpJumpNotTruthy, 7), // 0001
+				code.MakeInstruction(code.OpConstant, 0),      // 0004
+				code.MakeInstruction(code.OpPop),              // 0007
+				code.MakeInstruction(code.OpConstant, 1),      // 0008
+				code.MakeInstruction(code.OpPop),              // 0011
+			},
+		},
+		{
+			input:             "if (true) { 10 } else { 20 }; 30;",
+			expectedConstants: []any{10, 20, 30},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpTrue),              // 0000
+				code.MakeInstruction(code.OpJumpNotTruthy, 10), // 0001
+				code.MakeInstruction(code.OpConstant, 0),       // 0004
+				code.MakeInstruction(code.OpJump, 13),          // 0007
+				code.MakeInstruction(code.OpConstant, 1),       // 0010
+				code.MakeInstruction(code.OpPop),               // 0013
+				code.MakeInstruction(code.OpConstant, 2),       // 0014
+				code.MakeInstruction(code.OpPop),               // 0014
+			},
+		},
+	}
+	runCompilerTests(t, testCases)
+}
+
 func TestCompileBooleanExpressions(t *testing.T) {
 	testCases := []compilerTestCase{
 		{
