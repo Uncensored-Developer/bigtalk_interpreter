@@ -12,6 +12,7 @@ const StackSize = 2048
 var (
 	True  = &object.Boolean{Value: true}
 	False = &object.Boolean{Value: false}
+	Null  = &object.Null{}
 )
 
 type VirtualMachine struct {
@@ -74,6 +75,25 @@ func (v *VirtualMachine) Run() error {
 			}
 		case code.OpMinus:
 			err := v.executeMinusOperator()
+			if err != nil {
+				return err
+			}
+		case code.OpJump:
+			// Decode the operand on the right after the Opcode
+			pos := int(code.ReadUint16(v.instructions[i+1:]))
+			// Set the instruction pointer to the target of our jump
+			// accounting for the default increment of i in the for-loop
+			i = pos - 1
+		case code.OpJumpNotTruthy:
+			pos := int(code.ReadUint16(v.instructions[i+1:]))
+			i += 2
+
+			condition := v.pop()
+			if !isTruthy(condition) {
+				i = pos - 1
+			}
+		case code.OpNull:
+			err := v.push(Null)
 			if err != nil {
 				return err
 			}
@@ -173,6 +193,8 @@ func (v *VirtualMachine) executeBangOperator() error {
 		return v.push(False)
 	case False:
 		return v.push(True)
+	case Null:
+		return v.push(True)
 	default:
 		return v.push(False)
 	}
@@ -194,4 +216,15 @@ func nativeBoolToBooleanObject(input bool) *object.Boolean {
 		return True
 	}
 	return False
+}
+
+func isTruthy(obj object.IObject) bool {
+	switch obj := obj.(type) {
+	case *object.Boolean:
+		return obj.Value
+	case *object.Null:
+		return false
+	default:
+		return true
+	}
 }

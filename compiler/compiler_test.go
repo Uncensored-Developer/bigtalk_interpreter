@@ -22,12 +22,14 @@ func TestCompileConditionals(t *testing.T) {
 			input:             "if (true) { 10 }; 20;",
 			expectedConstants: []any{10, 20},
 			expectedInstructions: []code.Instructions{
-				code.MakeInstruction(code.OpTrue),             // 0000
-				code.MakeInstruction(code.OpJumpNotTruthy, 7), // 0001
-				code.MakeInstruction(code.OpConstant, 0),      // 0004
-				code.MakeInstruction(code.OpPop),              // 0007
-				code.MakeInstruction(code.OpConstant, 1),      // 0008
-				code.MakeInstruction(code.OpPop),              // 0011
+				code.MakeInstruction(code.OpTrue),              // 0000
+				code.MakeInstruction(code.OpJumpNotTruthy, 10), // 0001
+				code.MakeInstruction(code.OpConstant, 0),       // 0004
+				code.MakeInstruction(code.OpJump, 11),          // 0007
+				code.MakeInstruction(code.OpNull),              // 0010
+				code.MakeInstruction(code.OpPop),               // 0011
+				code.MakeInstruction(code.OpConstant, 1),       // 0012
+				code.MakeInstruction(code.OpPop),               // 0015
 			},
 		},
 		{
