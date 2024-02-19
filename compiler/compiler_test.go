@@ -38,6 +38,36 @@ func TestIntegerArithmetic(t *testing.T) {
 				code.MakeInstruction(code.OpPop),
 			},
 		},
+		{
+			input:             "1 - 2",
+			expectedConstants: []any{1, 2},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpConstant, 0),
+				code.MakeInstruction(code.OpConstant, 1),
+				code.MakeInstruction(code.OpSub),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+		{
+			input:             "2 * 2",
+			expectedConstants: []any{2, 2},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpConstant, 0),
+				code.MakeInstruction(code.OpConstant, 1),
+				code.MakeInstruction(code.OpMul),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+		{
+			input:             "2 / 2",
+			expectedConstants: []any{2, 2},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpConstant, 0),
+				code.MakeInstruction(code.OpConstant, 1),
+				code.MakeInstruction(code.OpDiv),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
 	}
 
 	runCompilerTests(t, testCases)
