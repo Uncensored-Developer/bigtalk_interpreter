@@ -16,7 +16,29 @@ type compilerTestCase struct {
 	expectedInstructions []code.Instructions
 }
 
-func TestIntegerArithmetic(t *testing.T) {
+func TestCompileBooleanExpressions(t *testing.T) {
+	testCases := []compilerTestCase{
+		{
+			input:             "true",
+			expectedConstants: []any{},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpTrue),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+		{
+			input:             "false",
+			expectedConstants: []any{},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpFalse),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+	}
+	runCompilerTests(t, testCases)
+}
+
+func TestCompileIntegerArithmetic(t *testing.T) {
 	testCases := []compilerTestCase{
 		{
 			input:             "1 + 2",

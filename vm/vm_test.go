@@ -15,7 +15,15 @@ type vmTestCase struct {
 	expected any
 }
 
-func TestIntegerArithmetic(t *testing.T) {
+func TestVirtualMachineBooleanExpressions(t *testing.T) {
+	testCases := []vmTestCase{
+		{"true", true},
+		{"false", false},
+	}
+	runVirtualMachineTests(t, testCases)
+}
+
+func TestVirtualMachineIntegerArithmetic(t *testing.T) {
 	testCases := []vmTestCase{
 		{"1", 1},
 		{"2", 2},
@@ -47,6 +55,18 @@ func testIntegerObject(expected int64, actual object.IObject) error {
 
 	if result.Value != expected {
 		return fmt.Errorf("object.Value = %d, want = %d", result.Value, expected)
+	}
+	return nil
+}
+
+func testBooleanObject(expected bool, actual object.IObject) error {
+	result, ok := actual.(*object.Boolean)
+	if !ok {
+		return fmt.Errorf("actual is not *objecr.Boolean. got = %T (%v)", actual, actual)
+	}
+
+	if result.Value != expected {
+		return fmt.Errorf("object.Value = %t, want = %t", result.Value, expected)
 	}
 	return nil
 }
@@ -83,6 +103,11 @@ func testExpectedObject(t *testing.T, expected any, actual object.IObject) {
 		err := testIntegerObject(int64(expected), actual)
 		if err != nil {
 			t.Errorf("testIntegerObject() failed: %s", err)
+		}
+	case bool:
+		err := testBooleanObject(bool(expected), actual)
+		if err != nil {
+			t.Errorf("testBooleanObject() failed: %s", err)
 		}
 	}
 }
