@@ -46,7 +46,7 @@ func Start(in io.Reader, out io.Writer) {
 			continue
 		}
 
-		top := vMachine.StackTop()
+		top := vMachine.LastPoppedStackElement()
 		io.WriteString(out, fmt.Sprintf("%s\n", top.Inspect()))
 	}
 }

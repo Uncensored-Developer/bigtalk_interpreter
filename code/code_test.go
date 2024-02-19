@@ -14,9 +14,9 @@ func TestMakeInstruction(t *testing.T) {
 			[]byte{byte(OpConstant), 255, 254},
 		},
 		{
-			OppAdd,
+			OpAdd,
 			[]int{},
-			[]byte{byte(OppAdd)},
+			[]byte{byte(OpAdd)},
 		},
 	}
 
@@ -37,7 +37,7 @@ func TestMakeInstruction(t *testing.T) {
 
 func TestInstructions_String(t *testing.T) {
 	instructions := []Instructions{
-		MakeInstruction(OppAdd),
+		MakeInstruction(OpAdd),
 		MakeInstruction(OpConstant, 2),
 		MakeInstruction(OpConstant, 65535),
 	}
