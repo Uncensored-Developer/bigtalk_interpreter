@@ -3,6 +3,7 @@ package repl
 import (
 	"BigTalk_Interpreter/compiler"
 	"BigTalk_Interpreter/lexer"
+	"BigTalk_Interpreter/object"
 	"BigTalk_Interpreter/parser"
 	"BigTalk_Interpreter/vm"
 	"bufio"
@@ -14,6 +15,10 @@ const PROMPT = ">> "
 
 func Start(in io.Reader, out io.Writer) {
 	scanner := bufio.NewScanner(in)
+
+	var constants []object.IObject
+	globals := make([]object.IObject, vm.GlobalsSize)
+	symbolTable := compiler.NewSymbolTable()
 
 	for {
 		fmt.Print(PROMPT)
@@ -32,14 +37,14 @@ func Start(in io.Reader, out io.Writer) {
 			continue
 		}
 
-		comp := compiler.NewCompiler()
+		comp := compiler.NewCompilerWithState(symbolTable, constants)
 		err := comp.Compile(program)
 		if err != nil {
 			fmt.Fprintf(out, "Compilation error:\n %s\n", err)
 			continue
 		}
 
-		vMachine := vm.NewVirtualMachine(comp.ByteCode())
+		vMachine := vm.NewVirtualMachineWithGlobalStore(comp.ByteCode(), globals)
 		err = vMachine.Run()
 		if err != nil {
 			fmt.Fprintf(out, "Bytecode execution error:\n %s\n", err)

@@ -7,7 +7,10 @@ import (
 	"fmt"
 )
 
-const StackSize = 2048
+const (
+	StackSize   = 2048
+	GlobalsSize = 65536 // maximum number of global binding the VM can support
+)
 
 var (
 	True  = &object.Boolean{Value: true}
@@ -20,6 +23,8 @@ type VirtualMachine struct {
 	instructions code.Instructions
 	stack        []object.IObject
 	sp           int // Points to the next value
+
+	globals []object.IObject
 }
 
 func NewVirtualMachine(bytecode *compiler.ByteCode) *VirtualMachine {
@@ -28,7 +33,14 @@ func NewVirtualMachine(bytecode *compiler.ByteCode) *VirtualMachine {
 		constants:    bytecode.Constants,
 		stack:        make([]object.IObject, StackSize),
 		sp:           0,
+		globals:      make([]object.IObject, GlobalsSize),
 	}
+}
+
+func NewVirtualMachineWithGlobalStore(bytecode *compiler.ByteCode, s []object.IObject) *VirtualMachine {
+	vm := NewVirtualMachine(bytecode)
+	vm.globals = s
+	return vm
 }
 
 func (v *VirtualMachine) LastPoppedStackElement() object.IObject {
@@ -94,6 +106,17 @@ func (v *VirtualMachine) Run() error {
 			}
 		case code.OpNull:
 			err := v.push(Null)
+			if err != nil {
+				return err
+			}
+		case code.OpSetGlobal:
+			globalIdx := code.ReadUint16(v.instructions[i+1:])
+			i += 2
+			v.globals[globalIdx] = v.pop()
+		case code.OpGetGlobal:
+			globalIdx := code.ReadUint16(v.instructions[i+1:])
+			i += 2
+			err := v.push(v.globals[globalIdx])
 			if err != nil {
 				return err
 			}
