@@ -15,6 +15,15 @@ type vmTestCase struct {
 	expected any
 }
 
+func TestVirtualMachineArrayLiteral(t *testing.T) {
+	testCases := []vmTestCase{
+		{"[]", []int{}},
+		{"[1, 2, 3]", []int{1, 2, 3}},
+		{"[1 + 2, 3 * 4, 5 + 6]", []int{3, 12, 11}},
+	}
+	runVirtualMachineTests(t, testCases)
+}
+
 func TestVirtualMachineStringExpressions(t *testing.T) {
 	tests := []vmTestCase{
 		{`"foobar"`, "foobar"},
@@ -179,6 +188,23 @@ func testExpectedObject(t *testing.T, expected any, actual object.IObject) {
 		err := testStringObject(expected, actual)
 		if err != nil {
 			t.Errorf("testStringObject() failed: %s", err)
+		}
+	case []int:
+		array, ok := actual.(*object.Array)
+		if !ok {
+			t.Errorf("actual not *object.Array: %T (%+v)", actual, actual)
+			return
+		}
+
+		if len(array.Items) != len(expected) {
+			t.Errorf("len(array.Items) = %d, want = %d", len(array.Items), len(expected))
+		}
+
+		for i, expectedItem := range expected {
+			err := testIntegerObject(int64(expectedItem), array.Items[i])
+			if err != nil {
+				t.Errorf("testIntegerObject() failed: %s", err)
+			}
 		}
 	}
 }

@@ -120,6 +120,17 @@ func (v *VirtualMachine) Run() error {
 			if err != nil {
 				return err
 			}
+		case code.OpArray:
+			arrayLength := int(code.ReadUint16(v.instructions[i+1:]))
+			i += 2
+
+			array := v.buildArray(v.sp-arrayLength, v.sp)
+			v.sp = v.sp - arrayLength
+
+			err := v.push(array)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -246,6 +257,15 @@ func (v *VirtualMachine) executeMinusOperator() error {
 
 	value := operand.(*object.Integer).Value
 	return v.push(&object.Integer{Value: -value})
+}
+
+func (v *VirtualMachine) buildArray(startIndex, endIndex int) object.IObject {
+	items := make([]object.IObject, endIndex-startIndex)
+
+	for i := startIndex; i < endIndex; i++ {
+		items[i-startIndex] = v.stack[i]
+	}
+	return &object.Array{Items: items}
 }
 
 func nativeBoolToBooleanObject(input bool) *object.Boolean {

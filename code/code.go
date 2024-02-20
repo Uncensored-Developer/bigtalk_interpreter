@@ -67,6 +67,7 @@ const (
 	OpNull
 	OpSetGlobal
 	OpGetGlobal
+	OpArray
 )
 
 type OpcodeDefinition struct {
@@ -146,6 +147,10 @@ var definitions = map[Opcode]*OpcodeDefinition{
 	OpGetGlobal: {
 		Name:          "OpGetGlobal",
 		OperandWidths: []int{2},
+	},
+	OpArray: {
+		Name:          "OpArray",
+		OperandWidths: []int{2}, // this means an array literal can contain a maximum of 65535 items. (2 bytes)
 	},
 }
 
