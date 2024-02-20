@@ -15,6 +15,15 @@ type vmTestCase struct {
 	expected any
 }
 
+func TestGlobalLetStatements(t *testing.T) {
+	testCases := []vmTestCase{
+		{"let x = 1; x", 1},
+		{"let x = 1; let y = 2; x + y", 3},
+		{"let x = 1; let y = x + x; x + y", 3},
+	}
+	runVirtualMachineTests(t, testCases)
+}
+
 func TestVirtualMachineConditionals(t *testing.T) {
 	testCases := []vmTestCase{
 		{"if (true) { 1 }", 1},

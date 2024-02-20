@@ -22,6 +22,8 @@ type Compiler struct {
 	constants           []object.IObject
 	lastInstruction     EmittedInstructions
 	previousInstruction EmittedInstructions
+
+	symbolTable *SymbolTable
 }
 
 func NewCompiler() *Compiler {
@@ -30,7 +32,15 @@ func NewCompiler() *Compiler {
 		constants:           []object.IObject{},
 		lastInstruction:     EmittedInstructions{},
 		previousInstruction: EmittedInstructions{},
+		symbolTable:         NewSymbolTable(),
 	}
+}
+
+func NewCompilerWithState(s *SymbolTable, constants []object.IObject) *Compiler {
+	compiler := NewCompiler()
+	compiler.symbolTable = s
+	compiler.constants = constants
+	return compiler
 }
 
 func (c *Compiler) Compile(node ast.INode) error {
@@ -154,6 +164,19 @@ func (c *Compiler) Compile(node ast.INode) error {
 				return err
 			}
 		}
+	case *ast.LetStatement:
+		err := c.Compile(node.Value)
+		if err != nil {
+			return err
+		}
+		symbol := c.symbolTable.Define(node.Name.Value)
+		c.emit(code.OpSetGlobal, symbol.Index)
+	case *ast.Identifier:
+		symbol, ok := c.symbolTable.Resolve(node.Value)
+		if !ok {
+			return fmt.Errorf("undefined variable %s", node.Value)
+		}
+		c.emit(code.OpGetGlobal, symbol.Index)
 	}
 	return nil
 }

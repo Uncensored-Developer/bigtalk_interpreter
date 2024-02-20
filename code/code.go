@@ -65,6 +65,8 @@ const (
 	OpJump
 	OpJumpNotTruthy
 	OpNull
+	OpSetGlobal
+	OpGetGlobal
 )
 
 type OpcodeDefinition struct {
@@ -136,6 +138,14 @@ var definitions = map[Opcode]*OpcodeDefinition{
 	OpNull: {
 		Name:          "OpNull",
 		OperandWidths: []int{},
+	},
+	OpSetGlobal: {
+		Name:          "OpSetGlobal",
+		OperandWidths: []int{2},
+	},
+	OpGetGlobal: {
+		Name:          "OpGetGlobal",
+		OperandWidths: []int{2},
 	},
 }
 

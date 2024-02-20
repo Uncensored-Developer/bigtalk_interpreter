@@ -16,6 +16,54 @@ type compilerTestCase struct {
 	expectedInstructions []code.Instructions
 }
 
+func TestCompileGlobalLetStatements(t *testing.T) {
+	testCases := []compilerTestCase{
+		{
+			input: `
+let x = 1;
+let y = 2;
+`,
+			expectedConstants: []interface{}{1, 2},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpConstant, 0),
+				code.MakeInstruction(code.OpSetGlobal, 0),
+				code.MakeInstruction(code.OpConstant, 1),
+				code.MakeInstruction(code.OpSetGlobal, 1),
+			},
+		},
+		{
+			input: `
+let x = 1;
+x;
+`,
+			expectedConstants: []interface{}{1},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpConstant, 0),
+				code.MakeInstruction(code.OpSetGlobal, 0),
+				code.MakeInstruction(code.OpGetGlobal, 0),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+		{
+			input: `
+let x = 1;
+let y = x;
+y;
+`,
+			expectedConstants: []interface{}{1},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpConstant, 0),
+				code.MakeInstruction(code.OpSetGlobal, 0),
+				code.MakeInstruction(code.OpGetGlobal, 0),
+				code.MakeInstruction(code.OpSetGlobal, 1),
+				code.MakeInstruction(code.OpGetGlobal, 1),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+	}
+	runCompilerTests(t, testCases)
+}
+
 func TestCompileConditionals(t *testing.T) {
 	testCases := []compilerTestCase{
 		{
