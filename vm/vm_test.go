@@ -15,7 +15,16 @@ type vmTestCase struct {
 	expected any
 }
 
-func TestGlobalLetStatements(t *testing.T) {
+func TestVirtualMachineStringExpressions(t *testing.T) {
+	tests := []vmTestCase{
+		{`"foobar"`, "foobar"},
+		{`"foo" + "bar"`, "foobar"},
+		{`"foo" + "bar" + "baz"`, "foobarbaz"},
+	}
+	runVirtualMachineTests(t, tests)
+}
+
+func TestVirtualMachineGlobalLetStatements(t *testing.T) {
 	testCases := []vmTestCase{
 		{"let x = 1; x", 1},
 		{"let x = 1; let y = 2; x + y", 3},
@@ -166,5 +175,22 @@ func testExpectedObject(t *testing.T, expected any, actual object.IObject) {
 		if actual != Null {
 			t.Errorf("object is not Null: %T (%+v)", actual, actual)
 		}
+	case string:
+		err := testStringObject(expected, actual)
+		if err != nil {
+			t.Errorf("testStringObject() failed: %s", err)
+		}
 	}
+}
+
+func testStringObject(expected string, actual object.IObject) error {
+	result, ok := actual.(*object.String)
+	if !ok {
+		return fmt.Errorf("actual is not *objecr.String. got = %T (%v)", actual, actual)
+	}
+
+	if result.Value != expected {
+		return fmt.Errorf("object.Value = %s, want = %s", result.Value, expected)
+	}
+	return nil
 }
