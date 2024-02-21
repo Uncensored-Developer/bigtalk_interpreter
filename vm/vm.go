@@ -120,6 +120,39 @@ func (v *VirtualMachine) Run() error {
 			if err != nil {
 				return err
 			}
+		case code.OpArray:
+			arrayLength := int(code.ReadUint16(v.instructions[i+1:]))
+			i += 2
+
+			array := v.buildArray(v.sp-arrayLength, v.sp)
+			v.sp = v.sp - arrayLength
+
+			err := v.push(array)
+			if err != nil {
+				return err
+			}
+		case code.OpMap:
+			mapLength := int(code.ReadUint16(v.instructions[i+1:]))
+			i += 2
+
+			mapObj, err := v.buildMap(v.sp-mapLength, v.sp)
+			if err != nil {
+				return err
+			}
+			v.sp = v.sp - mapLength
+
+			err = v.push(mapObj)
+			if err != nil {
+				return err
+			}
+		case code.OpIndex:
+			index := v.pop()
+			obj := v.pop()
+
+			err := v.executeIndexExpression(obj, index)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -147,10 +180,14 @@ func (v *VirtualMachine) executeBinaryOperation(op code.Opcode) error {
 	leftType := left.Type()
 	rightType := right.Type()
 
-	if leftType == object.INTEGER_OBJ && rightType == object.INTEGER_OBJ {
+	switch {
+	case leftType == object.INTEGER_OBJ && rightType == object.INTEGER_OBJ:
 		return v.executeBinaryIntegerOperation(op, left, right)
+	case leftType == object.STRING_OBJ && rightType == object.STRING_OBJ:
+		return v.executeBinaryStringOperation(op, left, right)
+	default:
+		return fmt.Errorf("unsupported types for binary operation: %s %s", leftType, rightType)
 	}
-	return fmt.Errorf("unsupported types for binary operation: %s %s", leftType, rightType)
 }
 
 func (v *VirtualMachine) executeBinaryIntegerOperation(op code.Opcode, left, right object.IObject) error {
@@ -172,6 +209,16 @@ func (v *VirtualMachine) executeBinaryIntegerOperation(op code.Opcode, left, rig
 		return fmt.Errorf("unknown integer operator: %d", op)
 	}
 	return v.push(&object.Integer{Value: result})
+}
+
+func (v *VirtualMachine) executeBinaryStringOperation(op code.Opcode, left, right object.IObject) error {
+	if op != code.OpAdd {
+		return fmt.Errorf("unknown string operator: %d", op)
+	}
+
+	leftValue := left.(*object.String).Value
+	rightValue := right.(*object.String).Value
+	return v.push(&object.String{Value: leftValue + rightValue})
 }
 
 func (v *VirtualMachine) executeComparison(op code.Opcode) error {
@@ -232,6 +279,79 @@ func (v *VirtualMachine) executeMinusOperator() error {
 
 	value := operand.(*object.Integer).Value
 	return v.push(&object.Integer{Value: -value})
+}
+
+func (v *VirtualMachine) executeIndexExpression(obj, index object.IObject) error {
+	switch {
+	case obj.Type() == object.ARRAY_OBJ && index.Type() == object.INTEGER_OBJ:
+		return v.executeArrayIndex(obj, index)
+	case obj.Type() == object.MAP_OBJ:
+		return v.executeMapIndex(obj, index)
+	default:
+		return fmt.Errorf("index operator not supported for %s", obj.Type())
+	}
+}
+
+func (v *VirtualMachine) executeArrayIndex(array, index object.IObject) error {
+	arrayObj := array.(*object.Array)
+	i := index.(*object.Integer).Value
+	maxLen := int64(len(arrayObj.Items) - 1)
+
+	if i < 0 || i > maxLen {
+		return v.push(Null)
+	}
+
+	return v.push(arrayObj.Items[i])
+}
+
+func (v *VirtualMachine) executeMapIndex(hash, index object.IObject) error {
+	mapObj := hash.(*object.Map)
+
+	key, ok := index.(object.IHashable)
+	if !ok {
+		return fmt.Errorf("unusable as hash key: %s", index.Type())
+	}
+
+	pair, ok := mapObj.Pairs[key.HashKey()]
+	if !ok {
+		return v.push(Null)
+	}
+
+	return v.push(pair.Value)
+}
+
+func (v *VirtualMachine) buildArray(startIndex, endIndex int) object.IObject {
+	items := make([]object.IObject, endIndex-startIndex)
+
+	for i := startIndex; i < endIndex; i++ {
+		items[i-startIndex] = v.stack[i]
+	}
+	return &object.Array{Items: items}
+}
+
+// buildMap constructs a new instance of object.Map using the elements from the stack within the specified range.
+// It iterates over the stack starting from startIndex and ending at endIndex, by incrementing the index by 2 in each iteration.
+// For every pair of stack elements at indices i and i+1, it creates a new object.MapPair with the key as the element at index i, and the value as the element at index i+1.
+// It then checks if the key implements the object.IHashable interface. If not, it returns an error with a message indicating that the key is not usable as a hash key.
+// Otherwise, it computes the hash key using the key's HashKey() method and adds the pair to the hashedPairs map using the hash key as the key.
+// Finally, it returns a new instance of object.Map with the hashedPairs as the pairs field.
+// If an error occurs during the construction of the map, it returns nil and the error.
+func (v *VirtualMachine) buildMap(startIndex, endIndex int) (object.IObject, error) {
+	hashedPairs := make(map[object.HashKey]object.MapPair)
+
+	for i := startIndex; i < endIndex; i += 2 {
+		key := v.stack[i]
+		value := v.stack[i+1]
+
+		pair := object.MapPair{Key: key, Value: value}
+
+		hashKey, ok := key.(object.IHashable)
+		if !ok {
+			return nil, fmt.Errorf("unusable as hash key: %s", key.Type())
+		}
+		hashedPairs[hashKey.HashKey()] = pair
+	}
+	return &object.Map{Pairs: hashedPairs}, nil
 }
 
 func nativeBoolToBooleanObject(input bool) *object.Boolean {
