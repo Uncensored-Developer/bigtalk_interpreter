@@ -5,6 +5,7 @@ import (
 	"BigTalk_Interpreter/code"
 	"BigTalk_Interpreter/object"
 	"fmt"
+	"sort"
 )
 
 type ByteCode struct {
@@ -188,6 +189,27 @@ func (c *Compiler) Compile(node ast.INode) error {
 			}
 		}
 		c.emit(code.OpArray, len(node.Items))
+	case *ast.MapLiteral:
+		var keys []ast.IExpression
+		for k := range node.Pairs {
+			keys = append(keys, k)
+		}
+		sort.Slice(keys, func(i, j int) bool {
+			return keys[i].String() < keys[j].String()
+		})
+
+		for _, k := range keys {
+			err := c.Compile(k)
+			if err != nil {
+				return err
+			}
+
+			err = c.Compile(node.Pairs[k])
+			if err != nil {
+				return err
+			}
+		}
+		c.emit(code.OpMap, len(node.Pairs)*2)
 	}
 	return nil
 }

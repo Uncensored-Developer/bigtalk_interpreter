@@ -20,7 +20,7 @@ const (
 	STRING_OBJ       = "STRING"
 	BUILTIN_OBJ      = "BUILTIN"
 	ARRAY_OBJ        = "ARRAY"
-	HASH_OBJ         = "HASH"
+	MAP_OBJ          = "HASH"
 )
 
 type IObject interface {
@@ -198,7 +198,7 @@ type Map struct {
 }
 
 func (m *Map) Type() ObjectType {
-	return HASH_OBJ
+	return MAP_OBJ
 }
 
 func (m *Map) Inspect() string {
