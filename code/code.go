@@ -69,6 +69,7 @@ const (
 	OpGetGlobal
 	OpArray
 	OpMap
+	OpIndex
 )
 
 type OpcodeDefinition struct {
@@ -156,6 +157,10 @@ var definitions = map[Opcode]*OpcodeDefinition{
 	OpMap: {
 		Name:          "OpMap",
 		OperandWidths: []int{2},
+	},
+	OpIndex: {
+		Name:          "OpIndex",
+		OperandWidths: []int{},
 	},
 }
 

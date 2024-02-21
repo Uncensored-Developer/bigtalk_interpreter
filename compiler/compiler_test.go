@@ -16,6 +16,41 @@ type compilerTestCase struct {
 	expectedInstructions []code.Instructions
 }
 
+func TestCompileIndexExpressions(t *testing.T) {
+	tests := []compilerTestCase{
+		{
+			input:             "[1, 2, 3][0 + 1]",
+			expectedConstants: []any{1, 2, 3, 0, 1},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpConstant, 0),
+				code.MakeInstruction(code.OpConstant, 1),
+				code.MakeInstruction(code.OpConstant, 2),
+				code.MakeInstruction(code.OpArray, 3),
+				code.MakeInstruction(code.OpConstant, 3),
+				code.MakeInstruction(code.OpConstant, 4),
+				code.MakeInstruction(code.OpAdd),
+				code.MakeInstruction(code.OpIndex),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+		{
+			input:             "{1: 2}[1 - 0]",
+			expectedConstants: []any{1, 2, 1, 0},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpConstant, 0),
+				code.MakeInstruction(code.OpConstant, 1),
+				code.MakeInstruction(code.OpMap, 2),
+				code.MakeInstruction(code.OpConstant, 2),
+				code.MakeInstruction(code.OpConstant, 3),
+				code.MakeInstruction(code.OpSub),
+				code.MakeInstruction(code.OpIndex),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+	}
+	runCompilerTests(t, tests)
+}
+
 func TestCompileMapLiterals(t *testing.T) {
 	testCases := []compilerTestCase{
 		{

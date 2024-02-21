@@ -15,6 +15,46 @@ type vmTestCase struct {
 	expected any
 }
 
+func TestVirtualMachineIndexExpressions(t *testing.T) {
+	testCases := []vmTestCase{
+		{"[1, 2, 3][1]", 2},
+		{"[1, 2, 3][0 + 2]", 3},
+		{"[[1, 1, 1]][0][0]", 1},
+		{"[][0]", Null},
+		{"[1, 2, 3][99]", Null},
+		{"[1][-1]", Null},
+		{"{1: 1, 2: 2}[1]", 1},
+		{"{1: 1, 2: 2}[2]", 2},
+		{"{1: 1}[0]", Null},
+		{"{}[0]", Null},
+	}
+	runVirtualMachineTests(t, testCases)
+}
+
+func TestVirtualMachineMapLiterals(t *testing.T) {
+	testCases := []vmTestCase{
+		{
+			"{}", map[object.HashKey]int64{},
+		},
+		{
+			"{1: 2, 2: 3}",
+			map[object.HashKey]int64{
+				(&object.Integer{Value: 1}).HashKey(): 2,
+				(&object.Integer{Value: 2}).HashKey(): 3,
+			},
+		},
+		{
+			"{1 + 1: 2 * 2, 3 + 3: 4 * 4}",
+			map[object.HashKey]int64{
+				(&object.Integer{Value: 2}).HashKey(): 4,
+				(&object.Integer{Value: 6}).HashKey(): 16,
+			},
+		},
+	}
+
+	runVirtualMachineTests(t, testCases)
+}
+
 func TestVirtualMachineArrayLiteral(t *testing.T) {
 	testCases := []vmTestCase{
 		{"[]", []int{}},
@@ -202,6 +242,28 @@ func testExpectedObject(t *testing.T, expected any, actual object.IObject) {
 
 		for i, expectedItem := range expected {
 			err := testIntegerObject(int64(expectedItem), array.Items[i])
+			if err != nil {
+				t.Errorf("testIntegerObject() failed: %s", err)
+			}
+		}
+	case map[object.HashKey]int64:
+		hash, ok := actual.(*object.Map)
+		if !ok {
+			t.Errorf("actual not *object.Map: %T (%+v)", actual, actual)
+			return
+		}
+
+		if len(hash.Pairs) != len(expected) {
+			t.Errorf("len(array.Items) = %d, want = %d", len(hash.Pairs), len(expected))
+			return
+		}
+
+		for expectedKey, expectedValue := range expected {
+			pair, ok := hash.Pairs[expectedKey]
+			if !ok {
+				t.Errorf("no pair for given key in Pairs")
+			}
+			err := testIntegerObject(expectedValue, pair.Value)
 			if err != nil {
 				t.Errorf("testIntegerObject() failed: %s", err)
 			}
