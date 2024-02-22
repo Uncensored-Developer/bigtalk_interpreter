@@ -15,6 +15,81 @@ type vmTestCase struct {
 	expected any
 }
 
+func TestVirtualMachineFunctionsWithoutReturnValue(t *testing.T) {
+	testCases := []vmTestCase{
+		{
+			input: `
+let noReturn = fn() { };
+noReturn();
+`,
+			expected: Null,
+		},
+		{
+			input: `
+let noReturnOne = fn() { };
+let noReturnTwo = fn() { noReturnOne(); };
+noReturnOne();
+noReturnTwo();
+`,
+			expected: Null,
+		},
+	}
+	runVirtualMachineTests(t, testCases)
+}
+
+func TestVirtualMachineCallingFunctionsWithNoArguments(t *testing.T) {
+	testCases := []vmTestCase{
+		{
+			input: `
+let func = fn() { 1 + 2; };
+func();
+`,
+			expected: 3,
+		},
+		{
+			input: `
+let one = fn() { 1; };
+let two = fn() { 2; };
+one() + two()
+`,
+			expected: 3,
+		},
+		{
+			input: `
+let x = fn() { 1 };
+let y = fn() { x() + 1 };
+let z = fn() { y() + 1 };
+z();
+`,
+			expected: 3,
+		},
+		{
+			input: `
+let earlyExit = fn() { return 1; 2; };
+earlyExit();
+`,
+			expected: 1,
+		},
+		{
+			input: `
+let earlyExit = fn() { return 1; return 2; };
+earlyExit();
+`,
+			expected: 1,
+		},
+		// First class function
+		{
+			input: `
+let returnsOne = fn() { 1; };
+let returnsOneReturner = fn() { returnsOne; };
+returnsOneReturner()();
+`,
+			expected: 1,
+		},
+	}
+	runVirtualMachineTests(t, testCases)
+}
+
 func TestVirtualMachineIndexExpressions(t *testing.T) {
 	testCases := []vmTestCase{
 		{"[1, 2, 3][1]", 2},

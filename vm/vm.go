@@ -10,6 +10,7 @@ import (
 const (
 	StackSize   = 2048
 	GlobalsSize = 65536 // maximum number of global binding the VM can support
+	MaxFrames   = 1024
 )
 
 var (
@@ -19,21 +20,30 @@ var (
 )
 
 type VirtualMachine struct {
-	constants    []object.IObject
-	instructions code.Instructions
-	stack        []object.IObject
-	sp           int // Points to the next value
+	constants []object.IObject
+	stack     []object.IObject
+	sp        int // Points to the next value
 
 	globals []object.IObject
+
+	frames      []*Frame
+	framesIndex int
 }
 
 func NewVirtualMachine(bytecode *compiler.ByteCode) *VirtualMachine {
+	mainFn := &object.CompiledFunction{Instructions: bytecode.Instructions}
+	mainFrame := NewFrame(mainFn)
+
+	frames := make([]*Frame, MaxFrames)
+	frames[0] = mainFrame
+
 	return &VirtualMachine{
-		instructions: bytecode.Instructions,
-		constants:    bytecode.Constants,
-		stack:        make([]object.IObject, StackSize),
-		sp:           0,
-		globals:      make([]object.IObject, GlobalsSize),
+		constants:   bytecode.Constants,
+		stack:       make([]object.IObject, StackSize),
+		sp:          0,
+		globals:     make([]object.IObject, GlobalsSize),
+		frames:      frames,
+		framesIndex: 1,
 	}
 }
 
@@ -48,12 +58,21 @@ func (v *VirtualMachine) LastPoppedStackElement() object.IObject {
 }
 
 func (v *VirtualMachine) Run() error {
-	for i := 0; i < len(v.instructions); i++ {
-		op := code.Opcode(v.instructions[i])
+	var ip int
+	var ins code.Instructions
+	var op code.Opcode
+
+	for v.currentFrame().ip < len(v.currentFrame().Instructions())-1 {
+		v.currentFrame().ip++
+
+		ip = v.currentFrame().ip
+		ins = v.currentFrame().Instructions()
+		op = code.Opcode(ins[ip])
+
 		switch op {
 		case code.OpConstant:
-			index := code.ReadUint16(v.instructions[i+1:])
-			i += 2
+			index := code.ReadUint16(ins[ip+1:])
+			v.currentFrame().ip += 2
 			err := v.push(v.constants[index])
 			if err != nil {
 				return err
@@ -92,17 +111,17 @@ func (v *VirtualMachine) Run() error {
 			}
 		case code.OpJump:
 			// Decode the operand on the right after the Opcode
-			pos := int(code.ReadUint16(v.instructions[i+1:]))
+			pos := int(code.ReadUint16(ins[ip+1:]))
 			// Set the instruction pointer to the target of our jump
 			// accounting for the default increment of i in the for-loop
-			i = pos - 1
+			v.currentFrame().ip = pos - 1
 		case code.OpJumpNotTruthy:
-			pos := int(code.ReadUint16(v.instructions[i+1:]))
-			i += 2
+			pos := int(code.ReadUint16(ins[ip+1:]))
+			v.currentFrame().ip += 2
 
 			condition := v.pop()
 			if !isTruthy(condition) {
-				i = pos - 1
+				v.currentFrame().ip = pos - 1
 			}
 		case code.OpNull:
 			err := v.push(Null)
@@ -110,19 +129,19 @@ func (v *VirtualMachine) Run() error {
 				return err
 			}
 		case code.OpSetGlobal:
-			globalIdx := code.ReadUint16(v.instructions[i+1:])
-			i += 2
+			globalIdx := code.ReadUint16(ins[ip+1:])
+			v.currentFrame().ip += 2
 			v.globals[globalIdx] = v.pop()
 		case code.OpGetGlobal:
-			globalIdx := code.ReadUint16(v.instructions[i+1:])
-			i += 2
+			globalIdx := code.ReadUint16(ins[ip+1:])
+			v.currentFrame().ip += 2
 			err := v.push(v.globals[globalIdx])
 			if err != nil {
 				return err
 			}
 		case code.OpArray:
-			arrayLength := int(code.ReadUint16(v.instructions[i+1:]))
-			i += 2
+			arrayLength := int(code.ReadUint16(ins[ip+1:]))
+			v.currentFrame().ip += 2
 
 			array := v.buildArray(v.sp-arrayLength, v.sp)
 			v.sp = v.sp - arrayLength
@@ -132,8 +151,8 @@ func (v *VirtualMachine) Run() error {
 				return err
 			}
 		case code.OpMap:
-			mapLength := int(code.ReadUint16(v.instructions[i+1:]))
-			i += 2
+			mapLength := int(code.ReadUint16(ins[ip+1:]))
+			v.currentFrame().ip += 2
 
 			mapObj, err := v.buildMap(v.sp-mapLength, v.sp)
 			if err != nil {
@@ -150,6 +169,33 @@ func (v *VirtualMachine) Run() error {
 			obj := v.pop()
 
 			err := v.executeIndexExpression(obj, index)
+			if err != nil {
+				return err
+			}
+		case code.OpCall:
+			// Try to a get compiled function off the stack
+			fn, ok := v.stack[v.sp-1].(*object.CompiledFunction)
+			if !ok {
+				return fmt.Errorf("cannot call non-function")
+			}
+			frame := NewFrame(fn)
+			v.pushFrame(frame)
+		case code.OpReturnValue:
+			// first pop return value off the stack
+			returnVal := v.pop()
+
+			// pop the just executed frame of the frame stack
+			v.popFrame()
+			v.pop() // pop the just called *object.CompiledFunction off the stack
+			err := v.push(returnVal)
+			if err != nil {
+				return err
+			}
+		case code.OpReturn:
+			v.popFrame()
+			v.pop()
+
+			err := v.push(Null)
 			if err != nil {
 				return err
 			}
@@ -352,6 +398,20 @@ func (v *VirtualMachine) buildMap(startIndex, endIndex int) (object.IObject, err
 		hashedPairs[hashKey.HashKey()] = pair
 	}
 	return &object.Map{Pairs: hashedPairs}, nil
+}
+
+func (v *VirtualMachine) currentFrame() *Frame {
+	return v.frames[v.framesIndex-1]
+}
+
+func (v *VirtualMachine) pushFrame(f *Frame) {
+	v.frames[v.framesIndex] = f
+	v.framesIndex++
+}
+
+func (v *VirtualMachine) popFrame() *Frame {
+	v.framesIndex--
+	return v.frames[v.framesIndex]
 }
 
 func nativeBoolToBooleanObject(input bool) *object.Boolean {

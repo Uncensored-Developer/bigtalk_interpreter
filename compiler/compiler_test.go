@@ -16,6 +16,47 @@ type compilerTestCase struct {
 	expectedInstructions []code.Instructions
 }
 
+func TestCompileFunctionCalls(t *testing.T) {
+	testCases := []compilerTestCase{
+		{
+			input: "fn() { 1 }();",
+			expectedConstants: []any{
+				1,
+				[]code.Instructions{
+					code.MakeInstruction(code.OpConstant, 0), // The literal "1"
+					code.MakeInstruction(code.OpReturnValue),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpConstant, 1), // The compiled function
+				code.MakeInstruction(code.OpCall),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+		{
+			input: `
+let noArg = fn() { 1 };
+noArg();
+`,
+			expectedConstants: []any{
+				1,
+				[]code.Instructions{
+					code.MakeInstruction(code.OpConstant, 0), // The literal "1"
+					code.MakeInstruction(code.OpReturnValue),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpConstant, 1), // The compiled function
+				code.MakeInstruction(code.OpSetGlobal, 0),
+				code.MakeInstruction(code.OpGetGlobal, 0),
+				code.MakeInstruction(code.OpCall),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+	}
+	runCompilerTests(t, testCases)
+}
+
 func TestCompileFunctionsWithoutReturnValue(t *testing.T) {
 	testCases := []compilerTestCase{
 		{
