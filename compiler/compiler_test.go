@@ -16,6 +16,79 @@ type compilerTestCase struct {
 	expectedInstructions []code.Instructions
 }
 
+func TestCompileLetStatementWithScopes(t *testing.T) {
+	testCases := []compilerTestCase{
+		{
+			input: `
+let x = 3;
+fn() { x }
+`,
+			expectedConstants: []any{
+				3,
+				[]code.Instructions{
+					code.MakeInstruction(code.OpGetGlobal, 0),
+					code.MakeInstruction(code.OpReturnValue),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpConstant, 0),
+				code.MakeInstruction(code.OpSetGlobal, 0),
+				code.MakeInstruction(code.OpConstant, 1),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+		{
+			input: `
+fn() {
+	let x = 3;
+	x
+}
+`,
+			expectedConstants: []any{
+				3,
+				[]code.Instructions{
+					code.MakeInstruction(code.OpConstant, 0),
+					code.MakeInstruction(code.OpSetLocal, 0),
+					code.MakeInstruction(code.OpGetLocal, 0),
+					code.MakeInstruction(code.OpReturnValue),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpConstant, 1),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+		{
+			input: `
+fn() {
+	let x = 1;
+	let y = 2;
+	x + y
+}
+`,
+			expectedConstants: []any{
+				1,
+				2,
+				[]code.Instructions{
+					code.MakeInstruction(code.OpConstant, 0),
+					code.MakeInstruction(code.OpSetLocal, 0),
+					code.MakeInstruction(code.OpConstant, 1),
+					code.MakeInstruction(code.OpSetLocal, 1),
+					code.MakeInstruction(code.OpGetLocal, 0),
+					code.MakeInstruction(code.OpGetLocal, 1),
+					code.MakeInstruction(code.OpAdd),
+					code.MakeInstruction(code.OpReturnValue),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpConstant, 2),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+	}
+	runCompilerTests(t, testCases)
+}
+
 func TestCompileFunctionCalls(t *testing.T) {
 	testCases := []compilerTestCase{
 		{
