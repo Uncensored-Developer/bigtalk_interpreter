@@ -70,6 +70,9 @@ const (
 	OpArray
 	OpMap
 	OpIndex
+	OpCall
+	OpReturnValue
+	OpReturn
 )
 
 type OpcodeDefinition struct {
@@ -160,6 +163,18 @@ var definitions = map[Opcode]*OpcodeDefinition{
 	},
 	OpIndex: {
 		Name:          "OpIndex",
+		OperandWidths: []int{},
+	},
+	OpCall: {
+		Name:          "OpCall",
+		OperandWidths: []int{},
+	},
+	OpReturnValue: {
+		Name:          "OpReturnValue",
+		OperandWidths: []int{},
+	},
+	OpReturn: {
+		Name:          "OpReturn",
 		OperandWidths: []int{},
 	},
 }
