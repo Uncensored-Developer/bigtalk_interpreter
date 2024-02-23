@@ -2,6 +2,37 @@ package compiler
 
 import "testing"
 
+func TestSymbolTable_Define_Resole_Builtins(t *testing.T) {
+	global := NewSymbolTable()
+	firstLocal := NewWrappedSymbolTable(global)
+	secondLocal := NewWrappedSymbolTable(firstLocal)
+
+	expected := []Symbol{
+		{Name: "a", Scope: BuiltinScope, Index: 0},
+		{Name: "b", Scope: BuiltinScope, Index: 1},
+		{Name: "c", Scope: BuiltinScope, Index: 2},
+		{Name: "d", Scope: BuiltinScope, Index: 3},
+	}
+
+	for i, sym := range expected {
+		global.DefineBuiltin(i, sym.Name)
+	}
+
+	for _, table := range []*SymbolTable{global, firstLocal, secondLocal} {
+		for _, sym := range expected {
+			result, ok := table.Resolve(sym.Name)
+			if !ok {
+				t.Errorf("name %s could not be resolved", sym.Name)
+				continue
+			}
+
+			if result != sym {
+				t.Errorf("expected %s to resolve to %+v, got = %+v", sym.Name, sym, result)
+			}
+		}
+	}
+}
+
 func TestSymbolTable_Resolve_NestedLocal(t *testing.T) {
 	global := NewSymbolTable()
 	global.Define("a")

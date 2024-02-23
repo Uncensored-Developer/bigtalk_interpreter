@@ -75,6 +75,7 @@ const (
 	OpReturn
 	OpSetLocal
 	OpGetLocal
+	OpGetBuiltin
 )
 
 type OpcodeDefinition struct {
@@ -185,6 +186,10 @@ var definitions = map[Opcode]*OpcodeDefinition{
 	},
 	OpGetLocal: {
 		Name:          "OpGetLocal",
+		OperandWidths: []int{1},
+	},
+	OpGetBuiltin: {
+		Name:          "OpGetBuiltin",
 		OperandWidths: []int{1},
 	},
 }

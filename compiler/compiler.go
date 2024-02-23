@@ -33,13 +33,17 @@ func NewCompiler() *Compiler {
 		lastInstruction:     EmittedInstructions{},
 		previousInstruction: EmittedInstructions{},
 	}
+
+	symbolTable := NewSymbolTable()
+	for i, sym := range object.BuiltinFunctions {
+		symbolTable.DefineBuiltin(i, sym.Name)
+	}
 	return &Compiler{
 		constants:   []object.IObject{},
-		symbolTable: NewSymbolTable(),
+		symbolTable: symbolTable,
 		scopes:      []CompilationScope{mainScope},
 		scopeIndex:  0,
 	}
-
 }
 
 func NewCompilerWithState(s *SymbolTable, constants []object.IObject) *Compiler {
@@ -186,11 +190,7 @@ func (c *Compiler) Compile(node ast.INode) error {
 		if !ok {
 			return fmt.Errorf("undefined variable %s", node.Value)
 		}
-		if symbol.Scope == GlobalScope {
-			c.emit(code.OpGetGlobal, symbol.Index)
-		} else {
-			c.emit(code.OpGetLocal, symbol.Index)
-		}
+		c.loadSymbol(symbol)
 	case *ast.StringLiteral:
 		str := &object.String{Value: node.Value}
 		c.emit(code.OpConstant, c.addConstant(str))
@@ -383,6 +383,17 @@ func (c *Compiler) replaceLastPopWithReturn() {
 	lastPos := c.scopes[c.scopeIndex].lastInstruction.Position
 	c.replaceInstruction(lastPos, code.MakeInstruction(code.OpReturnValue))
 	c.scopes[c.scopeIndex].lastInstruction.Opcode = code.OpReturnValue
+}
+
+func (c *Compiler) loadSymbol(s Symbol) {
+	switch s.Scope {
+	case GlobalScope:
+		c.emit(code.OpGetGlobal, s.Index)
+	case LocalScope:
+		c.emit(code.OpGetLocal, s.Index)
+	case BuiltinScope:
+		c.emit(code.OpGetBuiltin, s.Index)
+	}
 }
 
 type CompilationScope struct {
