@@ -237,6 +237,11 @@ func (c *Compiler) Compile(node ast.INode) error {
 		c.emit(code.OpIndex)
 	case *ast.FunctionLiteral:
 		c.enterScope()
+
+		for _, p := range node.Parameters {
+			c.symbolTable.Define(p.Value)
+		}
+
 		err := c.Compile(node.Body)
 		if err != nil {
 			return err
@@ -265,7 +270,14 @@ func (c *Compiler) Compile(node ast.INode) error {
 		if err != nil {
 			return err
 		}
-		c.emit(code.OpCall)
+
+		for _, arg := range node.Arguments {
+			err := c.Compile(arg)
+			if err != nil {
+				return err
+			}
+		}
+		c.emit(code.OpCall, len(node.Arguments))
 	}
 	return nil
 }

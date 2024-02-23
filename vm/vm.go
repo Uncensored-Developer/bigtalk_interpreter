@@ -173,6 +173,8 @@ func (v *VirtualMachine) Run() error {
 				return err
 			}
 		case code.OpCall:
+			v.currentFrame().ip += 1
+
 			// Try to a get compiled function off the stack
 			fn, ok := v.stack[v.sp-1].(*object.CompiledFunction)
 			if !ok {

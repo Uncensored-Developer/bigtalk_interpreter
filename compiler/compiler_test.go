@@ -102,7 +102,7 @@ func TestCompileFunctionCalls(t *testing.T) {
 			},
 			expectedInstructions: []code.Instructions{
 				code.MakeInstruction(code.OpConstant, 1), // The compiled function
-				code.MakeInstruction(code.OpCall),
+				code.MakeInstruction(code.OpCall, 0),
 				code.MakeInstruction(code.OpPop),
 			},
 		},
@@ -122,7 +122,57 @@ noArg();
 				code.MakeInstruction(code.OpConstant, 1), // The compiled function
 				code.MakeInstruction(code.OpSetGlobal, 0),
 				code.MakeInstruction(code.OpGetGlobal, 0),
-				code.MakeInstruction(code.OpCall),
+				code.MakeInstruction(code.OpCall, 0),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+		{
+			input: `
+let oneArg = fn(a) { a };
+oneArg(1);
+`,
+			expectedConstants: []any{
+				[]code.Instructions{
+					code.MakeInstruction(code.OpGetLocal, 0),
+					code.MakeInstruction(code.OpReturnValue),
+				},
+				1,
+			},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpConstant, 0),
+				code.MakeInstruction(code.OpSetGlobal, 0),
+				code.MakeInstruction(code.OpGetGlobal, 0),
+				code.MakeInstruction(code.OpConstant, 1),
+				code.MakeInstruction(code.OpCall, 1),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+		{
+			input: `
+let manyArgs = fn(a, b, c) { a; b; c; };
+manyArgs(1, 2, 3);
+`,
+			expectedConstants: []any{
+				[]code.Instructions{
+					code.MakeInstruction(code.OpGetLocal, 0),
+					code.MakeInstruction(code.OpPop),
+					code.MakeInstruction(code.OpGetLocal, 1),
+					code.MakeInstruction(code.OpPop),
+					code.MakeInstruction(code.OpGetLocal, 2),
+					code.MakeInstruction(code.OpReturnValue),
+				},
+				1,
+				2,
+				3,
+			},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpConstant, 0),
+				code.MakeInstruction(code.OpSetGlobal, 0),
+				code.MakeInstruction(code.OpGetGlobal, 0),
+				code.MakeInstruction(code.OpConstant, 1),
+				code.MakeInstruction(code.OpConstant, 2),
+				code.MakeInstruction(code.OpConstant, 3),
+				code.MakeInstruction(code.OpCall, 3),
 				code.MakeInstruction(code.OpPop),
 			},
 		},
