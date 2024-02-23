@@ -173,19 +173,13 @@ func (v *VirtualMachine) Run() error {
 				return err
 			}
 		case code.OpCall:
+			argsCount := code.ReadUint8(ins[ip+1:])
 			v.currentFrame().ip += 1
 
-			// Try to a get compiled function off the stack
-			fn, ok := v.stack[v.sp-1].(*object.CompiledFunction)
-			if !ok {
-				return fmt.Errorf("cannot call non-function")
+			err := v.callFunction(int(argsCount))
+			if err != nil {
+				return err
 			}
-			frame := NewFrame(fn, v.sp)
-			v.pushFrame(frame)
-
-			// Allocate space for the local bindings on the stack
-			// by increasing the value of the stack pointer (sp)
-			v.sp = frame.basePointer + fn.LocalsCount
 		case code.OpReturnValue:
 			// first pop return value off the stack
 			returnVal := v.pop()
@@ -434,6 +428,26 @@ func (v *VirtualMachine) pushFrame(f *Frame) {
 func (v *VirtualMachine) popFrame() *Frame {
 	v.framesIndex--
 	return v.frames[v.framesIndex]
+}
+
+func (v *VirtualMachine) callFunction(argsCount int) error {
+	// Try to a get compiled function off the stack
+	fn, ok := v.stack[v.sp-1-int(argsCount)].(*object.CompiledFunction)
+	if !ok {
+		return fmt.Errorf("cannot call non-function")
+	}
+
+	if argsCount != fn.ParametersCount {
+		return fmt.Errorf("wrong number of arguments: got = %d, want = %d", fn.ParametersCount, argsCount)
+	}
+
+	frame := NewFrame(fn, v.sp-argsCount)
+	v.pushFrame(frame)
+
+	// Allocate space for the local bindings on the stack
+	// by increasing the value of the stack pointer (sp)
+	v.sp = frame.basePointer + fn.LocalsCount
+	return nil
 }
 
 func nativeBoolToBooleanObject(input bool) *object.Boolean {

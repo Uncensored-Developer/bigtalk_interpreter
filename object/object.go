@@ -223,8 +223,9 @@ type IHashable interface {
 }
 
 type CompiledFunction struct {
-	Instructions code.Instructions
-	LocalsCount  int // Total number of local bindings the function would create
+	Instructions    code.Instructions
+	LocalsCount     int // Total number of local bindings the function would create
+	ParametersCount int
 }
 
 func (c *CompiledFunction) Type() ObjectType {

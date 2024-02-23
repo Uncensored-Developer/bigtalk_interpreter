@@ -257,7 +257,11 @@ func (c *Compiler) Compile(node ast.INode) error {
 
 		localsCount := c.symbolTable.numDefinitions
 		instructions := c.leaveScope()
-		compiledFn := &object.CompiledFunction{Instructions: instructions, LocalsCount: localsCount}
+		compiledFn := &object.CompiledFunction{
+			Instructions:    instructions,
+			LocalsCount:     localsCount,
+			ParametersCount: len(node.Parameters),
+		}
 		c.emit(code.OpConstant, c.addConstant(compiledFn))
 	case *ast.ReturnStatement:
 		err := c.Compile(node.Value)
