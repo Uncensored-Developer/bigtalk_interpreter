@@ -2,6 +2,7 @@ package object
 
 import (
 	"BigTalk_Interpreter/ast"
+	"BigTalk_Interpreter/code"
 	"bytes"
 	"fmt"
 	"hash/fnv"
@@ -11,16 +12,17 @@ import (
 type ObjectType string
 
 const (
-	INTEGER_OBJ      = "INTEGER"
-	BOOLEAN_OBJ      = "BOOLEAN"
-	NULL_OBJ         = "NULL"
-	RETURN_VALUE_OBJ = "RETURN_VALUE"
-	ERROR_OBJ        = "ERROR"
-	FUNCTION_ONJ     = "FUNCTION"
-	STRING_OBJ       = "STRING"
-	BUILTIN_OBJ      = "BUILTIN"
-	ARRAY_OBJ        = "ARRAY"
-	MAP_OBJ          = "HASH"
+	INTEGER_OBJ           = "INTEGER"
+	BOOLEAN_OBJ           = "BOOLEAN"
+	NULL_OBJ              = "NULL"
+	RETURN_VALUE_OBJ      = "RETURN_VALUE"
+	ERROR_OBJ             = "ERROR"
+	FUNCTION_ONJ          = "FUNCTION"
+	STRING_OBJ            = "STRING"
+	BUILTIN_OBJ           = "BUILTIN"
+	ARRAY_OBJ             = "ARRAY"
+	MAP_OBJ               = "HASH"
+	COMPILED_FUNCTION_OBJ = "COMPILED_FUNCTION_OBJ"
 )
 
 type IObject interface {
@@ -218,4 +220,18 @@ func (m *Map) Inspect() string {
 
 type IHashable interface {
 	HashKey() HashKey
+}
+
+type CompiledFunction struct {
+	Instructions    code.Instructions
+	LocalsCount     int // Total number of local bindings the function would create
+	ParametersCount int
+}
+
+func (c *CompiledFunction) Type() ObjectType {
+	return COMPILED_FUNCTION_OBJ
+}
+
+func (c *CompiledFunction) Inspect() string {
+	return fmt.Sprintf("CompiledFunction[%p]", c)
 }

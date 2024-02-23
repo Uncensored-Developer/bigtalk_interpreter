@@ -15,6 +15,266 @@ type vmTestCase struct {
 	expected any
 }
 
+func TestVirtualMachineCallingFunctionsWithWrongArgs(t *testing.T) {
+	testCases := []vmTestCase{
+		{
+			input:    `fn() { 1; }(1);`,
+			expected: `wrong number of arguments: got = 0, want = 1`,
+		},
+		{
+			input:    `fn(a) { a; }();`,
+			expected: `wrong number of arguments: got = 1, want = 0`,
+		},
+		{
+			input:    `fn(a, b) { a + b; }(1);`,
+			expected: `wrong number of arguments: got = 2, want = 1`,
+		},
+	}
+
+	for _, tc := range testCases {
+		program := parse(tc.input)
+
+		comp := compiler.NewCompiler()
+		err := comp.Compile(program)
+
+		if err != nil {
+			t.Fatalf("compile error: %s", err)
+		}
+
+		vm := NewVirtualMachine(comp.ByteCode())
+		err = vm.Run()
+		if err == nil {
+			t.Fatalf("Expected error from VirtualMachine but got nil")
+		}
+
+		if err.Error() != tc.expected {
+			t.Fatalf("err.Error() = %q, want = %q", err, tc.expected)
+		}
+	}
+}
+
+func TestVirtualMachineCallingFunctionsWithArgsAndBindings(t *testing.T) {
+	testCases := []vmTestCase{
+		{
+			input: `
+let x = fn(a) { a; };
+x(4);
+`,
+			expected: 4,
+		},
+		{
+			input: `
+let sum = fn(a, b) { a + b; };
+sum(1, 2);
+`,
+			expected: 3,
+		},
+		{
+			input: `
+let sum = fn(a, b) {
+	let c = a + b;
+	c;
+};
+sum(1, 2);
+`,
+			expected: 3,
+		},
+		{
+			input: `
+let sum = fn(a, b) {
+	let c = a + b;
+	c;
+};
+sum(1, 2) + sum(3, 4);`,
+			expected: 10,
+		},
+		{
+			input: `
+let sum = fn(a, b) {
+	let c = a + b;
+	c;
+};
+let outer = fn() {
+	sum(1, 2) + sum(3, 4);
+};
+outer();
+`,
+			expected: 10,
+		},
+		{
+			input: `
+let globalNum = 10;
+
+let sum = fn(a, b) {
+	let c = a + b;
+	c + globalNum;
+};
+
+let outer = fn() {
+	sum(1, 2) + sum(3, 4) + globalNum;
+};
+
+outer() + globalNum;
+`,
+			expected: 50,
+		},
+		{
+			input: `
+let one = fn() { 1; };
+
+let two = fn() { 
+	let result = one(); 
+	return result + result; 
+};
+
+let three = fn(two) { 
+	two() + 1; 
+};
+
+three(two);
+`,
+			expected: 3,
+		},
+	}
+	runVirtualMachineTests(t, testCases)
+}
+
+func TestVirtualMachineCallingFunctionsWithBindings(t *testing.T) {
+	testCases := []vmTestCase{
+		{
+			input: `
+let x = fn() { let x = 1; x };
+x();
+`,
+			expected: 1,
+		},
+		{
+			input: `
+let oneAndTwo = fn() { let one = 1; let two = 2; one + two; };
+oneAndTwo();
+`,
+			expected: 3,
+		},
+		{
+			input: `
+let oneAndTwo = fn() { let one = 1; let two = 2; one + two; };
+let threeAndFour = fn() { let three = 3; let four = 4; three + four; };
+oneAndTwo() + threeAndFour();
+`,
+			expected: 10,
+		},
+		{
+			input: `
+let firstFoobar = fn() { let foobar = 50; foobar; };
+let secondFoobar = fn() { let foobar = 100; foobar; };
+firstFoobar() + secondFoobar();
+`,
+			expected: 150,
+		},
+		{
+			input: `
+let globalSeed = 50;
+let minusOne = fn() {
+	let num = 1;
+	globalSeed - num;
+}
+let minusTwo = fn() {
+	let num = 2;
+	globalSeed - num;
+}
+minusOne() + minusTwo();
+`,
+			expected: 97,
+		},
+		{
+			input: `
+let returnsOneReturner = fn() {
+let returnsOne = fn() { 1; };
+returnsOne;
+};
+returnsOneReturner()();
+`,
+			expected: 1,
+		},
+	}
+	runVirtualMachineTests(t, testCases)
+}
+
+func TestVirtualMachineFunctionsWithoutReturnValue(t *testing.T) {
+	testCases := []vmTestCase{
+		{
+			input: `
+let noReturn = fn() { };
+noReturn();
+`,
+			expected: Null,
+		},
+		{
+			input: `
+let noReturnOne = fn() { };
+let noReturnTwo = fn() { noReturnOne(); };
+noReturnOne();
+noReturnTwo();
+`,
+			expected: Null,
+		},
+	}
+	runVirtualMachineTests(t, testCases)
+}
+
+func TestVirtualMachineCallingFunctionsWithNoArguments(t *testing.T) {
+	testCases := []vmTestCase{
+		{
+			input: `
+let func = fn() { 1 + 2; };
+func();
+`,
+			expected: 3,
+		},
+		{
+			input: `
+let one = fn() { 1; };
+let two = fn() { 2; };
+one() + two()
+`,
+			expected: 3,
+		},
+		{
+			input: `
+let x = fn() { 1 };
+let y = fn() { x() + 1 };
+let z = fn() { y() + 1 };
+z();
+`,
+			expected: 3,
+		},
+		{
+			input: `
+let earlyExit = fn() { return 1; 2; };
+earlyExit();
+`,
+			expected: 1,
+		},
+		{
+			input: `
+let earlyExit = fn() { return 1; return 2; };
+earlyExit();
+`,
+			expected: 1,
+		},
+		// First class function
+		{
+			input: `
+let returnsOne = fn() { 1; };
+let returnsOneReturner = fn() { returnsOne; };
+returnsOneReturner()();
+`,
+			expected: 1,
+		},
+	}
+	runVirtualMachineTests(t, testCases)
+}
+
 func TestVirtualMachineIndexExpressions(t *testing.T) {
 	testCases := []vmTestCase{
 		{"[1, 2, 3][1]", 2},

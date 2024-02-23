@@ -104,7 +104,6 @@ func (p *Parser) noPrefixParseFnError(t token.TokenType) {
 func (p *Parser) ParseProgram() *ast.Program {
 	program := &ast.Program{}
 	program.Statements = []ast.IStatement{}
-
 	for p.currentToken.Type != token.EOF {
 		stmt := p.parseStatement()
 		if stmt != nil {
@@ -133,7 +132,7 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 
 	stmt.Value = p.parseExpression(LOWEST)
 
-	for !p.currentTokenIs(token.SEMICOLON) {
+	if p.peekTokenIs(token.SEMICOLON) {
 		p.nextToken()
 	}
 	return stmt
