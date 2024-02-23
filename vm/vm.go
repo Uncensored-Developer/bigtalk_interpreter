@@ -32,7 +32,7 @@ type VirtualMachine struct {
 
 func NewVirtualMachine(bytecode *compiler.ByteCode) *VirtualMachine {
 	mainFn := &object.CompiledFunction{Instructions: bytecode.Instructions}
-	mainFrame := NewFrame(mainFn)
+	mainFrame := NewFrame(mainFn, 0)
 
 	frames := make([]*Frame, MaxFrames)
 	frames[0] = mainFrame
@@ -178,24 +178,44 @@ func (v *VirtualMachine) Run() error {
 			if !ok {
 				return fmt.Errorf("cannot call non-function")
 			}
-			frame := NewFrame(fn)
+			frame := NewFrame(fn, v.sp)
 			v.pushFrame(frame)
+
+			// Allocate space for the local bindings on the stack
+			// by increasing the value of the stack pointer (sp)
+			v.sp = frame.basePointer + fn.LocalsCount
 		case code.OpReturnValue:
 			// first pop return value off the stack
 			returnVal := v.pop()
 
 			// pop the just executed frame of the frame stack
-			v.popFrame()
-			v.pop() // pop the just called *object.CompiledFunction off the stack
+			frame := v.popFrame()
+			v.sp = frame.basePointer - 1
+
 			err := v.push(returnVal)
 			if err != nil {
 				return err
 			}
 		case code.OpReturn:
-			v.popFrame()
-			v.pop()
+			frame := v.popFrame()
+			v.sp = frame.basePointer - 1
 
 			err := v.push(Null)
+			if err != nil {
+				return err
+			}
+		case code.OpSetLocal:
+			localIndex := code.ReadUint8(ins[ip+1:])
+			v.currentFrame().ip += 1
+
+			frame := v.currentFrame()
+			v.stack[frame.basePointer+int(localIndex)] = v.pop()
+		case code.OpGetLocal:
+			localIndex := code.ReadUint8(ins[ip+1:])
+			v.currentFrame().ip += 1
+
+			frame := v.currentFrame()
+			err := v.push(v.stack[frame.basePointer+int(localIndex)])
 			if err != nil {
 				return err
 			}

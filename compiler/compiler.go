@@ -250,8 +250,9 @@ func (c *Compiler) Compile(node ast.INode) error {
 			c.emit(code.OpReturn)
 		}
 
+		localsCount := c.symbolTable.numDefinitions
 		instructions := c.leaveScope()
-		compiledFn := &object.CompiledFunction{Instructions: instructions}
+		compiledFn := &object.CompiledFunction{Instructions: instructions, LocalsCount: localsCount}
 		c.emit(code.OpConstant, c.addConstant(compiledFn))
 	case *ast.ReturnStatement:
 		err := c.Compile(node.Value)
