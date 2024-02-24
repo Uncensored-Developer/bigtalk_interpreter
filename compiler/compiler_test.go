@@ -16,13 +16,52 @@ type compilerTestCase struct {
 	expectedInstructions []code.Instructions
 }
 
+func TestCompileBuiltins(t *testing.T) {
+	testcases := []compilerTestCase{
+		{
+			input: `
+		len([]);
+		push([], 1);
+		`,
+			expectedConstants: []any{1},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpGetBuiltin, 0),
+				code.MakeInstruction(code.OpArray, 0),
+				code.MakeInstruction(code.OpCall, 1),
+				code.MakeInstruction(code.OpPop),
+				code.MakeInstruction(code.OpGetBuiltin, 3),
+				code.MakeInstruction(code.OpArray, 0),
+				code.MakeInstruction(code.OpConstant, 0),
+				code.MakeInstruction(code.OpCall, 2),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+		{
+			input: "fn() { len([]) }",
+			expectedConstants: []any{
+				[]code.Instructions{
+					code.MakeInstruction(code.OpGetBuiltin, 0),
+					code.MakeInstruction(code.OpArray, 0),
+					code.MakeInstruction(code.OpCall, 1),
+					code.MakeInstruction(code.OpReturnValue),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpConstant, 0),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+	}
+	runCompilerTests(t, testcases)
+}
+
 func TestCompileLetStatementWithScopes(t *testing.T) {
 	testCases := []compilerTestCase{
 		{
 			input: `
-let x = 3;
-fn() { x }
-`,
+			let x = 3;
+			fn() { x }
+			`,
 			expectedConstants: []any{
 				3,
 				[]code.Instructions{
@@ -39,11 +78,11 @@ fn() { x }
 		},
 		{
 			input: `
-fn() {
-	let x = 3;
-	x
-}
-`,
+			fn() {
+				let x = 3;
+				x
+			}
+			`,
 			expectedConstants: []any{
 				3,
 				[]code.Instructions{
@@ -60,12 +99,12 @@ fn() {
 		},
 		{
 			input: `
-fn() {
-	let x = 1;
-	let y = 2;
-	x + y
-}
-`,
+			fn() {
+				let x = 1;
+				let y = 2;
+				x + y
+			}
+			`,
 			expectedConstants: []any{
 				1,
 				2,
@@ -108,9 +147,9 @@ func TestCompileFunctionCalls(t *testing.T) {
 		},
 		{
 			input: `
-let noArg = fn() { 1 };
-noArg();
-`,
+			let noArg = fn() { 1 };
+			noArg();
+			`,
 			expectedConstants: []any{
 				1,
 				[]code.Instructions{
@@ -128,9 +167,9 @@ noArg();
 		},
 		{
 			input: `
-let oneArg = fn(a) { a };
-oneArg(1);
-`,
+			let oneArg = fn(a) { a };
+			oneArg(1);
+			`,
 			expectedConstants: []any{
 				[]code.Instructions{
 					code.MakeInstruction(code.OpGetLocal, 0),
@@ -149,9 +188,9 @@ oneArg(1);
 		},
 		{
 			input: `
-let manyArgs = fn(a, b, c) { a; b; c; };
-manyArgs(1, 2, 3);
-`,
+			let manyArgs = fn(a, b, c) { a; b; c; };
+			manyArgs(1, 2, 3);
+			`,
 			expectedConstants: []any{
 				[]code.Instructions{
 					code.MakeInstruction(code.OpGetLocal, 0),
@@ -465,9 +504,9 @@ func TestCompileGlobalLetStatements(t *testing.T) {
 	testCases := []compilerTestCase{
 		{
 			input: `
-let x = 1;
-let y = 2;
-`,
+			let x = 1;
+			let y = 2;
+			`,
 			expectedConstants: []any{1, 2},
 			expectedInstructions: []code.Instructions{
 				code.MakeInstruction(code.OpConstant, 0),
@@ -478,9 +517,9 @@ let y = 2;
 		},
 		{
 			input: `
-let x = 1;
-x;
-`,
+			let x = 1;
+			x;
+			`,
 			expectedConstants: []any{1},
 			expectedInstructions: []code.Instructions{
 				code.MakeInstruction(code.OpConstant, 0),
@@ -491,10 +530,10 @@ x;
 		},
 		{
 			input: `
-let x = 1;
-let y = x;
-y;
-`,
+			let x = 1;
+			let y = x;
+			y;
+			`,
 			expectedConstants: []any{1},
 			expectedInstructions: []code.Instructions{
 				code.MakeInstruction(code.OpConstant, 0),
@@ -735,11 +774,11 @@ func testInstructions(expected []code.Instructions, actual code.Instructions) er
 	concatenated := concatInstructions(expected)
 
 	if len(actual) != len(concatenated) {
-		return fmt.Errorf("wrong instruction length. got = %q, want = %q", actual, concatenated)
+		return fmt.Errorf("wrong instruction length. \n got = %q \n want = %q", actual, concatenated)
 	}
 	for i, ins := range concatenated {
 		if actual[i] != ins {
-			return fmt.Errorf("wrong instruction at %d. got = %q, want = %q", i, actual[i], ins)
+			return fmt.Errorf("wrong instruction at %d. \n got = %q \n want = %q", i, actual, concatenated)
 		}
 	}
 	return nil

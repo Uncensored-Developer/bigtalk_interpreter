@@ -311,7 +311,10 @@ func applyFunction(fn object.IObject, args []object.IObject) object.IObject {
 		evaluated := Eval(fn.Body, extendedEnv)
 		return unwrapReturnValue(evaluated)
 	case *object.Builtin:
-		return fn.Fn(args...)
+		if result := fn.Fn(args...); result != nil {
+			return result
+		}
+		return NULL
 	default:
 		return newError("not a function: %s", fn.Type())
 	}
