@@ -262,7 +262,7 @@ func (c *Compiler) Compile(node ast.INode) error {
 			LocalsCount:     localsCount,
 			ParametersCount: len(node.Parameters),
 		}
-		c.emit(code.OpConstant, c.addConstant(compiledFn))
+		c.emit(code.OpClosure, c.addConstant(compiledFn))
 	case *ast.ReturnStatement:
 		err := c.Compile(node.Value)
 		if err != nil {

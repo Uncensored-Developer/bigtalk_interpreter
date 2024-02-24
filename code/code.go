@@ -36,10 +36,12 @@ func (ins Instructions) fmtInstruction(def *OpcodeDefinition, operands []int) st
 	}
 
 	switch operandsCount {
-	case 1:
-		return fmt.Sprintf("%s %d", def.Name, operands[0])
 	case 0:
 		return def.Name
+	case 1:
+		return fmt.Sprintf("%s %d", def.Name, operands[0])
+	case 2:
+		return fmt.Sprintf("%s %d %d", def.Name, operands[0], operands[1])
 	}
 
 	return fmt.Sprintf("ERROR: unhandled operandCount for %s\n", def.Name)
@@ -76,6 +78,7 @@ const (
 	OpSetLocal
 	OpGetLocal
 	OpGetBuiltin
+	OpClosure
 )
 
 type OpcodeDefinition struct {
@@ -191,6 +194,10 @@ var definitions = map[Opcode]*OpcodeDefinition{
 	OpGetBuiltin: {
 		Name:          "OpGetBuiltin",
 		OperandWidths: []int{1},
+	},
+	OpClosure: {
+		Name:          "OpClosure",
+		OperandWidths: []int{2, 1},
 	},
 }
 
