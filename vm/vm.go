@@ -176,7 +176,7 @@ func (v *VirtualMachine) Run() error {
 			argsCount := code.ReadUint8(ins[ip+1:])
 			v.currentFrame().ip += 1
 
-			err := v.callFunction(int(argsCount))
+			err := v.executeCall(int(argsCount))
 			if err != nil {
 				return err
 			}
@@ -212,6 +212,15 @@ func (v *VirtualMachine) Run() error {
 
 			frame := v.currentFrame()
 			err := v.push(v.stack[frame.basePointer+int(localIndex)])
+			if err != nil {
+				return err
+			}
+		case code.OpGetBuiltin:
+			builtinIndex := code.ReadUint8(ins[ip+1:])
+			v.currentFrame().ip += 1
+
+			definition := object.BuiltinFunctions[builtinIndex]
+			err := v.push(definition.Builtin)
 			if err != nil {
 				return err
 			}
@@ -430,13 +439,7 @@ func (v *VirtualMachine) popFrame() *Frame {
 	return v.frames[v.framesIndex]
 }
 
-func (v *VirtualMachine) callFunction(argsCount int) error {
-	// Try to a get compiled function off the stack
-	fn, ok := v.stack[v.sp-1-int(argsCount)].(*object.CompiledFunction)
-	if !ok {
-		return fmt.Errorf("cannot call non-function")
-	}
-
+func (v *VirtualMachine) callFunction(fn *object.CompiledFunction, argsCount int) error {
 	if argsCount != fn.ParametersCount {
 		return fmt.Errorf("wrong number of arguments: got = %d, want = %d", fn.ParametersCount, argsCount)
 	}
@@ -447,6 +450,36 @@ func (v *VirtualMachine) callFunction(argsCount int) error {
 	// Allocate space for the local bindings on the stack
 	// by increasing the value of the stack pointer (sp)
 	v.sp = frame.basePointer + fn.LocalsCount
+	return nil
+}
+
+func (v *VirtualMachine) executeCall(argsCount int) error {
+	called := v.stack[v.sp-1-argsCount]
+	switch called := called.(type) {
+	case *object.CompiledFunction:
+		return v.callFunction(called, argsCount)
+	case *object.Builtin:
+		return v.callBuiltin(called, argsCount)
+	default:
+		return fmt.Errorf("calling a non-function or non-builtin")
+	}
+}
+
+func (v *VirtualMachine) callBuiltin(builtin *object.Builtin, argsCount int) error {
+	args := v.stack[v.sp-argsCount : v.sp]
+
+	result := builtin.Fn(args...)
+	v.sp = v.sp - argsCount - 1
+
+	var err error
+	if result != nil {
+		err = v.push(result)
+	} else {
+		err = v.push(Null)
+	}
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

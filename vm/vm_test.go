@@ -15,6 +15,37 @@ type vmTestCase struct {
 	expected any
 }
 
+func TestNewVirtualMachineBuiltinFunctions(t *testing.T) {
+	testCases := []vmTestCase{
+		{`len("")`, 0},
+		{`len("two")`, 3},
+		{`len("hello world")`, 11},
+		{
+			`len(1)`,
+			&object.Error{
+				Message: "argument to `len` not supported, got INTEGER",
+			},
+		},
+		{`len("one", "two")`,
+			&object.Error{
+				Message: "wrong number of arguments. got=2, want=1",
+			},
+		},
+		{`len([1, 2, 3])`, 3},
+		{`len([])`, 0},
+		{`print("hello", "world!")`, Null},
+		{`tail([1, 2, 3])`, []int{2, 3}},
+		{`tail([])`, Null},
+		{`push([], 1)`, []int{1}},
+		{`push(1, 1)`,
+			&object.Error{
+				Message: "argument to `push` must be ARRAY, got INTEGER",
+			},
+		},
+	}
+	runVirtualMachineTests(t, testCases)
+}
+
 func TestVirtualMachineCallingFunctionsWithWrongArgs(t *testing.T) {
 	testCases := []vmTestCase{
 		{
@@ -527,6 +558,15 @@ func testExpectedObject(t *testing.T, expected any, actual object.IObject) {
 			if err != nil {
 				t.Errorf("testIntegerObject() failed: %s", err)
 			}
+		}
+	case *object.Error:
+		errObj, ok := actual.(*object.Error)
+		if !ok {
+			t.Errorf("actual not *object.Error: %T (%+v)", actual, actual)
+			return
+		}
+		if errObj.Message != expected.Message {
+			t.Errorf("errObj.Message = %q, want = %q", errObj.Message, expected.Message)
 		}
 	}
 }
