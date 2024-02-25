@@ -243,6 +243,12 @@ func (v *VirtualMachine) Run() error {
 			if err != nil {
 				return err
 			}
+		case code.OpCurrentClosure:
+			currentClosure := v.currentFrame().closure
+			err := v.push(currentClosure)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil

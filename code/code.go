@@ -80,6 +80,7 @@ const (
 	OpGetBuiltin
 	OpClosure
 	OpGetFree
+	OpCurrentClosure
 )
 
 type OpcodeDefinition struct {
@@ -203,6 +204,10 @@ var definitions = map[Opcode]*OpcodeDefinition{
 	OpGetFree: {
 		Name:          "OpGetFree",
 		OperandWidths: []int{1},
+	},
+	OpCurrentClosure: {
+		Name:          "OpCurrentClosure",
+		OperandWidths: []int{},
 	},
 }
 

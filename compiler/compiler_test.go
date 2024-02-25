@@ -16,6 +16,74 @@ type compilerTestCase struct {
 	expectedInstructions []code.Instructions
 }
 
+func TestCompileRecursiveFunctions(t *testing.T) {
+	testCases := []compilerTestCase{
+		{
+			input: `
+			let countDown = fn(x) { countDown(x - 1); };
+			countDown(1);
+			`,
+			expectedConstants: []any{
+				1,
+				[]code.Instructions{
+					code.MakeInstruction(code.OpCurrentClosure),
+					code.MakeInstruction(code.OpGetLocal, 0),
+					code.MakeInstruction(code.OpConstant, 0),
+					code.MakeInstruction(code.OpSub),
+					code.MakeInstruction(code.OpCall, 1),
+					code.MakeInstruction(code.OpReturnValue),
+				},
+				1,
+			},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpClosure, 1, 0),
+				code.MakeInstruction(code.OpSetGlobal, 0),
+				code.MakeInstruction(code.OpGetGlobal, 0),
+				code.MakeInstruction(code.OpConstant, 2),
+				code.MakeInstruction(code.OpCall, 1),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+		{
+			input: `
+			let wrapper = fn() {
+				let countDown = fn(x) { countDown(x - 1); };
+				countDown(1);
+			};
+			wrapper();
+			`,
+			expectedConstants: []any{
+				1,
+				[]code.Instructions{
+					code.MakeInstruction(code.OpCurrentClosure),
+					code.MakeInstruction(code.OpGetLocal, 0),
+					code.MakeInstruction(code.OpConstant, 0),
+					code.MakeInstruction(code.OpSub),
+					code.MakeInstruction(code.OpCall, 1),
+					code.MakeInstruction(code.OpReturnValue),
+				},
+				1,
+				[]code.Instructions{
+					code.MakeInstruction(code.OpClosure, 1, 0),
+					code.MakeInstruction(code.OpSetLocal, 0),
+					code.MakeInstruction(code.OpGetLocal, 0),
+					code.MakeInstruction(code.OpConstant, 2),
+					code.MakeInstruction(code.OpCall, 1),
+					code.MakeInstruction(code.OpReturnValue),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				code.MakeInstruction(code.OpClosure, 3, 0),
+				code.MakeInstruction(code.OpSetGlobal, 0),
+				code.MakeInstruction(code.OpGetGlobal, 0),
+				code.MakeInstruction(code.OpCall, 0),
+				code.MakeInstruction(code.OpPop),
+			},
+		},
+	}
+	runCompilerTests(t, testCases)
+}
+
 func TestCompileClosures(t *testing.T) {
 	testCases := []compilerTestCase{
 		{

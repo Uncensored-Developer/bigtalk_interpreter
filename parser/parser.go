@@ -168,6 +168,10 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 
 	stmt.Value = p.parseExpression(LOWEST)
 
+	if fn, ok := stmt.Value.(*ast.FunctionLiteral); ok {
+		fn.Name = stmt.Name.Value
+	}
+
 	for p.peekTokenIs(token.SEMICOLON) {
 		p.nextToken()
 	}
