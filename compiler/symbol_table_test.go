@@ -2,6 +2,137 @@ package compiler
 
 import "testing"
 
+func TestSymbolTable_Resolve_UnresolvableFreeVariables(t *testing.T) {
+	global := NewSymbolTable()
+	global.Define("a")
+
+	firstLocal := NewWrappedSymbolTable(global)
+	firstLocal.Define("c")
+
+	secondLocal := NewWrappedSymbolTable(firstLocal)
+	secondLocal.Define("e")
+	secondLocal.Define("f")
+
+	expected := []Symbol{
+		{Name: "a", Scope: GlobalScope, Index: 0},
+		{Name: "c", Scope: FreeScope, Index: 0},
+		{Name: "e", Scope: LocalScope, Index: 0},
+		{Name: "f", Scope: LocalScope, Index: 1},
+	}
+
+	for _, sym := range expected {
+		result, ok := secondLocal.Resolve(sym.Name)
+		if !ok {
+			t.Errorf("name %q could not be resolved", sym.Name)
+			continue
+		}
+		if result != sym {
+			t.Errorf("expected %q to resolve to %+v, got=%+v",
+				sym.Name, sym, result)
+		}
+	}
+
+	expectedUnresolvable := []string{
+		"b",
+		"d",
+	}
+
+	for _, name := range expectedUnresolvable {
+		_, ok := secondLocal.Resolve(name)
+		if ok {
+			t.Errorf("name %q resolved, but was expected not to", name)
+		}
+	}
+}
+
+func TestSymbolTable_Resolve_FreeVariables(t *testing.T) {
+	// let a = 1;
+	// let b = 2;
+	//
+	// let firstLocal = fn() {
+	//	 let c = 3;
+	//	 let d = 4;
+	//	 a + b + c + d;
+	//
+	//	 let secondLocal = fn() {
+	//		 let e = 5;
+	//		 let f = 6;
+	//		 a + b + c + d + e + f;
+	//	 };
+	// };
+
+	global := NewSymbolTable()
+	global.Define("a")
+	global.Define("b")
+
+	firstLocal := NewWrappedSymbolTable(global)
+	firstLocal.Define("c")
+	firstLocal.Define("d")
+
+	secondLocal := NewWrappedSymbolTable(firstLocal)
+	secondLocal.Define("e")
+	secondLocal.Define("f")
+
+	testCases := []struct {
+		table               *SymbolTable
+		expectedSymbols     []Symbol
+		expectedFreeSymbols []Symbol
+	}{
+		{
+			firstLocal,
+			[]Symbol{
+				{Name: "a", Scope: GlobalScope, Index: 0},
+				{Name: "b", Scope: GlobalScope, Index: 1},
+				{Name: "c", Scope: LocalScope, Index: 0},
+				{Name: "d", Scope: LocalScope, Index: 1},
+			},
+			[]Symbol{},
+		},
+		{
+			secondLocal,
+			[]Symbol{
+				{Name: "a", Scope: GlobalScope, Index: 0},
+				{Name: "b", Scope: GlobalScope, Index: 1},
+				{Name: "c", Scope: FreeScope, Index: 0},
+				{Name: "d", Scope: FreeScope, Index: 1},
+				{Name: "e", Scope: LocalScope, Index: 0},
+				{Name: "f", Scope: LocalScope, Index: 1},
+			},
+			[]Symbol{
+				{Name: "c", Scope: LocalScope, Index: 0},
+				{Name: "d", Scope: LocalScope, Index: 1},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		for _, sym := range tc.expectedSymbols {
+			result, ok := tc.table.Resolve(sym.Name)
+			if !ok {
+				t.Errorf("name %q could not be resolved", sym.Name)
+				continue
+			}
+			if result != sym {
+				t.Errorf("expected %q to resolve to %+v, got=%+v",
+					sym.Name, sym, result)
+			}
+		}
+
+		if len(tc.table.FreeSymbols) != len(tc.expectedFreeSymbols) {
+			t.Errorf("wrong number of free symbols. got=%d, want=%d",
+				len(tc.table.FreeSymbols), len(tc.expectedFreeSymbols))
+			continue
+		}
+		for i, sym := range tc.expectedFreeSymbols {
+			result := tc.table.FreeSymbols[i]
+			if result != sym {
+				t.Errorf("wrong free symbol. got=%+v, want=%+v",
+					result, sym)
+			}
+		}
+	}
+}
+
 func TestSymbolTable_Define_Resole_Builtins(t *testing.T) {
 	global := NewSymbolTable()
 	firstLocal := NewWrappedSymbolTable(global)
@@ -22,12 +153,12 @@ func TestSymbolTable_Define_Resole_Builtins(t *testing.T) {
 		for _, sym := range expected {
 			result, ok := table.Resolve(sym.Name)
 			if !ok {
-				t.Errorf("name %s could not be resolved", sym.Name)
+				t.Errorf("name %q could not be resolved", sym.Name)
 				continue
 			}
 
 			if result != sym {
-				t.Errorf("expected %s to resolve to %+v, got = %+v", sym.Name, sym, result)
+				t.Errorf("expected %q to resolve to %+v, got = %+v", sym.Name, sym, result)
 			}
 		}
 	}
@@ -74,12 +205,12 @@ func TestSymbolTable_Resolve_NestedLocal(t *testing.T) {
 		for _, sym := range tc.expectedSymbols {
 			result, ok := tc.table.Resolve(sym.Name)
 			if !ok {
-				t.Errorf("name %s could not be resolved", sym.Name)
+				t.Errorf("name %q could not be resolved", sym.Name)
 				continue
 			}
 
 			if result != sym {
-				t.Errorf("expected %s to resolve to %+v, got = %+v", sym.Name, sym, result)
+				t.Errorf("expected %q to resolve to %+v, got = %+v", sym.Name, sym, result)
 			}
 		}
 	}
@@ -143,12 +274,12 @@ func TestSymbolTable_Resolve_Global(t *testing.T) {
 	for _, sym := range expected {
 		result, ok := global.Resolve(sym.Name)
 		if !ok {
-			t.Errorf("name %s could not be resolved", sym.Name)
+			t.Errorf("name %q could not be resolved", sym.Name)
 			continue
 		}
 
 		if result != sym {
-			t.Errorf("expected %s to resolve to %+v, got = %+v", sym.Name, sym, result)
+			t.Errorf("expected %q to resolve to %+v, got = %+v", sym.Name, sym, result)
 		}
 	}
 }
@@ -172,12 +303,12 @@ func TestSymbolTable_Resolve_Local(t *testing.T) {
 	for _, sym := range expected {
 		result, ok := local.Resolve(sym.Name)
 		if !ok {
-			t.Errorf("name %s could not be resolved.", sym.Name)
+			t.Errorf("name %q could not be resolved.", sym.Name)
 			continue
 		}
 
 		if result != sym {
-			t.Errorf("expected %s to resolve to %+v, got = %+v", sym.Name, sym, result)
+			t.Errorf("expected %q to resolve to %+v, got = %+v", sym.Name, sym, result)
 		}
 	}
 }
