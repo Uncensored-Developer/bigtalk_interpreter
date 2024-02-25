@@ -227,10 +227,19 @@ func (v *VirtualMachine) Run() error {
 			}
 		case code.OpClosure:
 			constIndex := code.ReadUint16(ins[ip+1:])
-			_ = code.ReadUint8(ins[ip+3:])
+			freeVariablesCount := code.ReadUint8(ins[ip+3:])
 			v.currentFrame().ip += 3
 
-			err := v.pushClosure(int(constIndex))
+			err := v.pushClosure(int(constIndex), int(freeVariablesCount))
+			if err != nil {
+				return err
+			}
+		case code.OpGetFree:
+			freeVariableIndex := code.ReadUint8(ins[ip+1:])
+			v.currentFrame().ip += 1
+
+			currentClosure := v.currentFrame().closure
+			err := v.push(currentClosure.FreeVariables[freeVariableIndex])
 			if err != nil {
 				return err
 			}
@@ -494,14 +503,20 @@ func (v *VirtualMachine) callBuiltin(builtin *object.Builtin, argsCount int) err
 	return nil
 }
 
-func (v *VirtualMachine) pushClosure(constIndex int) error {
+func (v *VirtualMachine) pushClosure(constIndex int, freeVariablesCount int) error {
 	constant := v.constants[constIndex]
 	fn, ok := constant.(*object.CompiledFunction)
 	if !ok {
 		return fmt.Errorf("constant is not *object.CompiledFunction: %+v", constant)
 	}
 
-	closure := &object.Closure{Fn: fn}
+	free := make([]object.IObject, freeVariablesCount)
+	for i := 0; i < freeVariablesCount; i++ {
+		free[i] = v.stack[v.sp+i-freeVariablesCount]
+	}
+	v.sp = v.sp - freeVariablesCount
+
+	closure := &object.Closure{Fn: fn, FreeVariables: free}
 	return v.push(closure)
 }
 
