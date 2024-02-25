@@ -7,6 +7,33 @@ import (
 	"testing"
 )
 
+func TestParsingFunctionLiteralWithName(t *testing.T) {
+	input := "let funcName = fn() {};"
+
+	l := lexer.NewLexer(input)
+	p := NewParser(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("len(program.Statements) = %d, want = %d", len(program.Statements), 1)
+	}
+
+	stmt, ok := program.Statements[0].(*ast.LetStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not ast.LetStatement. got=%T", program.Statements[0])
+	}
+
+	fn, ok := stmt.Value.(*ast.FunctionLiteral)
+	if !ok {
+		t.Fatalf("stmt.Value is not ast.FunctionLiteral. got=%T", stmt.Value)
+	}
+
+	if fn.Name != "funcName" {
+		t.Fatalf("fn.Name = %q, want = %q", fn.Name, "funcName")
+	}
+}
+
 func TestParsingMapLiteral_WithExpressions(t *testing.T) {
 	input := `{"one": 1 + 0, "two": 5 - 3, "three": 9 / 3}`
 

@@ -32,7 +32,8 @@ type VirtualMachine struct {
 
 func NewVirtualMachine(bytecode *compiler.ByteCode) *VirtualMachine {
 	mainFn := &object.CompiledFunction{Instructions: bytecode.Instructions}
-	mainFrame := NewFrame(mainFn, 0)
+	mainClosure := &object.Closure{Fn: mainFn}
+	mainFrame := NewFrame(mainClosure, 0)
 
 	frames := make([]*Frame, MaxFrames)
 	frames[0] = mainFrame
@@ -221,6 +222,30 @@ func (v *VirtualMachine) Run() error {
 
 			definition := object.BuiltinFunctions[builtinIndex]
 			err := v.push(definition.Builtin)
+			if err != nil {
+				return err
+			}
+		case code.OpClosure:
+			constIndex := code.ReadUint16(ins[ip+1:])
+			freeVariablesCount := code.ReadUint8(ins[ip+3:])
+			v.currentFrame().ip += 3
+
+			err := v.pushClosure(int(constIndex), int(freeVariablesCount))
+			if err != nil {
+				return err
+			}
+		case code.OpGetFree:
+			freeVariableIndex := code.ReadUint8(ins[ip+1:])
+			v.currentFrame().ip += 1
+
+			currentClosure := v.currentFrame().closure
+			err := v.push(currentClosure.FreeVariables[freeVariableIndex])
+			if err != nil {
+				return err
+			}
+		case code.OpCurrentClosure:
+			currentClosure := v.currentFrame().closure
+			err := v.push(currentClosure)
 			if err != nil {
 				return err
 			}
@@ -439,25 +464,26 @@ func (v *VirtualMachine) popFrame() *Frame {
 	return v.frames[v.framesIndex]
 }
 
-func (v *VirtualMachine) callFunction(fn *object.CompiledFunction, argsCount int) error {
-	if argsCount != fn.ParametersCount {
-		return fmt.Errorf("wrong number of arguments: got = %d, want = %d", fn.ParametersCount, argsCount)
+func (v *VirtualMachine) callClosure(closure *object.Closure, argsCount int) error {
+	if argsCount != closure.Fn.ParametersCount {
+		return fmt.Errorf(
+			"wrong number of arguments: got = %d, want = %d", closure.Fn.ParametersCount, argsCount)
 	}
 
-	frame := NewFrame(fn, v.sp-argsCount)
+	frame := NewFrame(closure, v.sp-argsCount)
 	v.pushFrame(frame)
 
 	// Allocate space for the local bindings on the stack
 	// by increasing the value of the stack pointer (sp)
-	v.sp = frame.basePointer + fn.LocalsCount
+	v.sp = frame.basePointer + closure.Fn.LocalsCount
 	return nil
 }
 
 func (v *VirtualMachine) executeCall(argsCount int) error {
 	called := v.stack[v.sp-1-argsCount]
 	switch called := called.(type) {
-	case *object.CompiledFunction:
-		return v.callFunction(called, argsCount)
+	case *object.Closure:
+		return v.callClosure(called, argsCount)
 	case *object.Builtin:
 		return v.callBuiltin(called, argsCount)
 	default:
@@ -481,6 +507,23 @@ func (v *VirtualMachine) callBuiltin(builtin *object.Builtin, argsCount int) err
 		return err
 	}
 	return nil
+}
+
+func (v *VirtualMachine) pushClosure(constIndex int, freeVariablesCount int) error {
+	constant := v.constants[constIndex]
+	fn, ok := constant.(*object.CompiledFunction)
+	if !ok {
+		return fmt.Errorf("constant is not *object.CompiledFunction: %+v", constant)
+	}
+
+	free := make([]object.IObject, freeVariablesCount)
+	for i := 0; i < freeVariablesCount; i++ {
+		free[i] = v.stack[v.sp+i-freeVariablesCount]
+	}
+	v.sp = v.sp - freeVariablesCount
+
+	closure := &object.Closure{Fn: fn, FreeVariables: free}
+	return v.push(closure)
 }
 
 func nativeBoolToBooleanObject(input bool) *object.Boolean {

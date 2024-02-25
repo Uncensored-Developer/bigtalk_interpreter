@@ -23,6 +23,11 @@ func TestMakeInstruction(t *testing.T) {
 			[]int{255},
 			[]byte{byte(OpGetLocal), 255},
 		},
+		{
+			OpClosure,
+			[]int{65534, 255},
+			[]byte{byte(OpClosure), 255, 254, 255},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -46,11 +51,13 @@ func TestInstructions_String(t *testing.T) {
 		MakeInstruction(OpGetLocal, 1),
 		MakeInstruction(OpConstant, 2),
 		MakeInstruction(OpConstant, 65535),
+		MakeInstruction(OpClosure, 65535, 255),
 	}
 	expected := `0000 OpAdd
 0001 OpGetLocal 1
 0003 OpConstant 2
 0006 OpConstant 65535
+0009 OpClosure 65535 255
 `
 
 	concatenated := Instructions{}
@@ -59,7 +66,7 @@ func TestInstructions_String(t *testing.T) {
 	}
 
 	if concatenated.String() != expected {
-		t.Errorf("wrongly formatted instructions. got = %q, want = %q", concatenated.String(), expected)
+		t.Errorf("wrongly formatted instructions. \n got = %q, \n want = %q", concatenated.String(), expected)
 	}
 }
 
@@ -72,6 +79,7 @@ func TestReadOperands(t *testing.T) {
 	}{
 		{"OpConstant", OpConstant, []int{65535}, 2},
 		{"OpGetLocal", OpGetLocal, []int{255}, 1},
+		{"OpClosure", OpClosure, []int{65535, 255}, 3},
 	}
 
 	for _, tc := range testCases {

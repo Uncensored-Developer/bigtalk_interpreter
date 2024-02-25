@@ -3,6 +3,7 @@ package ast
 import (
 	"BigTalk_Interpreter/token"
 	"bytes"
+	"fmt"
 	"strings"
 )
 
@@ -263,6 +264,7 @@ func (i *IfExpression) String() string {
 }
 
 type FunctionLiteral struct {
+	Name       string
 	Token      token.Token // token.FUNCTION
 	Parameters []*Identifier
 	Body       *BlockStatement
@@ -285,6 +287,9 @@ func (f *FunctionLiteral) String() string {
 	}
 
 	out.WriteString(f.TokenLiteral())
+	if f.Name != "" {
+		out.WriteString(fmt.Sprintf("<%s>", f.Name))
+	}
 	out.WriteString("(")
 	out.WriteString(strings.Join(params, ", "))
 	out.WriteString(") ")
